@@ -563,369 +563,488 @@ function Guestbook() {
   );
 }
 
-// 횡스크롤 플랫포머 — 신랑이 결혼식장까지 달린다
-type GameState = "idle" | "playing" | "cleared" | "over";
+// 🎮 포켓몬 감성 탑다운 JRPG — 오리지널 드로잉, 4단계 어드벤처
+// Phase 1 인트로 → Phase 2 집 탈출 → Phase 3 마을 이동 → Phase 4 레드카펫 러너
+type Phase = "intro" | "home" | "town" | "runner" | "cleared" | "over";
+type Sex = "groom" | "bride";
 
-type EntKind = "ring" | "heart" | "champagne" | "envelope" | "cake" | "bench";
+// 저해상도 게임보이 감성 해상도 (CSS에서 2~3배 업스케일)
+const VW = 320;
+const VH = 288;
+const TILE = 16;
 
-type Ent = {
-  kind: EntKind;
-  x: number;
-  y: number;
-  collected?: boolean;
-};
+// Phase 4 러너 상수
+const LANES = 3;
+const LANE_X = [VW * 0.28, VW * 0.5, VW * 0.72];
+const RUN_DURATION = 60; // 초
 
-const GAME_W = 480;
-const GAME_H = 260;
-const GROUND_Y = 210;
-const PLAYER_X = 80;
-const PLAYER_W = 18;
-const PLAYER_H = 34;
-const JUMP_V = -420;
-const GRAVITY = 1200;
+type RunnerItem =
+  | { kind: "ring" | "heart" | "bouquet" | "champagne" | "envelope" | "cake" | "kid"; lane: number; y: number };
 
-function MiniGame() {
+// 대사 큐 — 플랫 카툰 RPG 스타일, 오리지널 카피
+const INTRO_LINES: string[] = [
+  "안녕! 이 세계에 온 걸 환영하네.",
+  "이 세상은 「결혼」이라 불리는 아주 특별한 이벤트로 가득 차 있지.",
+  "나는 「축박사」라고 하네.",
+  "자, 오늘의 주인공… 자네의 모습을 보여주겠나?",
+];
+const HOME_LINES: string[] = [
+  "어머, 일어났구나!",
+  "오늘은 인생 최고의 날이란다.",
+  "늦지 않게 식장으로 가렴!",
+];
+const TOWN_LINES: string[] = [
+  "꼬마: 와! 오늘 결혼한대!",
+  "할머니: 좋을 때다~ 축하하네.",
+  "친구: 드디어 가는구나! 축하한다!",
+  "야생의 하객이 나타났다!",
+  "…반갑다고 인사했다.",
+  "식장이 보인다. 문을 연다…",
+];
+
+function WeddingAdventure() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const stateRef = useRef<GameState>("idle");
-  const [state, setState] = useState<GameState>("idle");
+  const [phase, setPhase] = useState<Phase>("intro");
+  const phaseRef = useRef<Phase>("intro");
+  const [sex, setSex] = useState<Sex>("groom");
+  const sexRef = useRef<Sex>("groom");
+  const [nickname, setNickname] = useState("");
+
+  // 공용 대사 상태
+  const [dialogIdx, setDialogIdx] = useState(0);
+  const dialogIdxRef = useRef(0);
+  const [dialogChars, setDialogChars] = useState(0);
+  const dialogCharsRef = useRef(0);
+  const cursorBlinkRef = useRef(0);
+
+  // Phase 2 집 탈출 (타일맵 8×6)
+  // 0=풀밭, 1=벽, 2=침대, 3=책상, 4=카펫, 5=문, 9=NPC
+  const HOME_MAP: number[][] = [
+    [1, 1, 1, 1, 1, 1, 1, 1],
+    [1, 2, 2, 0, 0, 0, 3, 1],
+    [1, 2, 2, 0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 9, 0, 0, 1],
+    [1, 4, 4, 4, 4, 4, 4, 1],
+    [1, 1, 1, 1, 5, 1, 1, 1],
+  ];
+  const playerRef = useRef({ col: 4, row: 3, facing: "down" as "up" | "down" | "left" | "right" });
+  const moveTimerRef = useRef(0);
+
+  // Phase 3 마을 자동 스크롤
+  const townScrollRef = useRef(0);
+  const townLineIdxRef = useRef(0);
+  const townTimerRef = useRef(0);
+
+  // Phase 4 러너
   const [score, setScore] = useState(0);
-  const [best, setBest] = useState(0);
-  const [remain, setRemain] = useState(60);
-  const [lives, setLives] = useState(3);
-
-  const playerYRef = useRef(GROUND_Y);
-  const vyRef = useRef(0);
-  const onGroundRef = useRef(true);
-  const animFrameRef = useRef(0);
-  const animTimerRef = useRef(0);
-  const entsRef = useRef<Ent[]>([]);
-  const spawnTimerRef = useRef(0.8);
-  const scrollRef = useRef(0);
-  const speedRef = useRef(160);
   const scoreRef = useRef(0);
-  const invincibleRef = useRef(0);
-  const timeLeftRef = useRef(60);
+  const [remain, setRemain] = useState(RUN_DURATION);
+  const remainRef = useRef(RUN_DURATION);
+  const [lives, setLives] = useState(3);
   const livesRef = useRef(3);
-  const lastTsRef = useRef<number | null>(null);
-  const rafRef = useRef<number | null>(null);
+  const [best, setBest] = useState(0);
+  const laneRef = useRef(1);
+  const itemsRef = useRef<RunnerItem[]>([]);
+  const spawnRef = useRef(0.8);
+  const invincRef = useRef(0);
+  const runScrollRef = useRef(0);
 
+  // RAF 루프
+  const rafRef = useRef<number | null>(null);
+  const lastTsRef = useRef<number | null>(null);
+
+  // best 스코어 로드
   useEffect(() => {
     try {
-      const raw = localStorage.getItem("wedding_runner_best_v2");
+      const raw = localStorage.getItem("wedding_adventure_best_v1");
       if (raw) setBest(parseInt(raw, 10) || 0);
     } catch {}
   }, []);
 
-  // idle 화면: 배경 + 신랑 프리뷰
-  useEffect(() => {
-    if (state === "playing") return;
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    drawBackground(ctx, 0);
-    drawGround(ctx, 0);
-    drawChapel(ctx, GAME_W - 110, 0);
-    drawGroomPixel(ctx, PLAYER_X, GROUND_Y, 0);
-  }, [state]);
-
-  const syncState = useCallback((s: GameState) => {
-    stateRef.current = s;
-    setState(s);
+  const setPhaseBoth = useCallback((p: Phase) => {
+    phaseRef.current = p;
+    setPhase(p);
+    // phase 진입시 대사 인덱스 초기화
+    dialogIdxRef.current = 0;
+    dialogCharsRef.current = 0;
+    setDialogIdx(0);
+    setDialogChars(0);
   }, []);
 
-  const reset = useCallback(() => {
-    entsRef.current = [];
-    spawnTimerRef.current = 1.2;
-    scrollRef.current = 0;
-    speedRef.current = 160;
+  const startRunner = useCallback(() => {
     scoreRef.current = 0;
-    timeLeftRef.current = 60;
+    remainRef.current = RUN_DURATION;
     livesRef.current = 3;
-    invincibleRef.current = 0;
-    playerYRef.current = GROUND_Y;
-    vyRef.current = 0;
-    onGroundRef.current = true;
-    lastTsRef.current = null;
-    animFrameRef.current = 0;
-    animTimerRef.current = 0;
+    laneRef.current = 1;
+    itemsRef.current = [];
+    spawnRef.current = 0.8;
+    invincRef.current = 0;
+    runScrollRef.current = 0;
     setScore(0);
-    setRemain(60);
+    setRemain(RUN_DURATION);
     setLives(3);
+    setPhaseBoth("runner");
+  }, [setPhaseBoth]);
+
+  const endRunner = useCallback((cleared: boolean) => {
+    const finalScore = scoreRef.current + (cleared ? 500 : 0);
+    scoreRef.current = finalScore;
+    setScore(finalScore);
+    try {
+      const prev = parseInt(localStorage.getItem("wedding_adventure_best_v1") || "0", 10);
+      if (finalScore > prev) {
+        localStorage.setItem("wedding_adventure_best_v1", String(finalScore));
+        setBest(finalScore);
+      }
+    } catch {}
+    setPhaseBoth(cleared ? "cleared" : "over");
+  }, [setPhaseBoth]);
+
+  // 대사 진행 — 탭/클릭하면 다음 줄
+  const advanceDialog = useCallback((lines: string[], onDone: () => void) => {
+    const full = lines[dialogIdxRef.current] ?? "";
+    if (dialogCharsRef.current < full.length) {
+      dialogCharsRef.current = full.length;
+      setDialogChars(full.length);
+      return;
+    }
+    const next = dialogIdxRef.current + 1;
+    if (next >= lines.length) {
+      onDone();
+      return;
+    }
+    dialogIdxRef.current = next;
+    dialogCharsRef.current = 0;
+    setDialogIdx(next);
+    setDialogChars(0);
   }, []);
 
-  const endGame = useCallback(
-    (final: GameState) => {
-      syncState(final);
-      try {
-        if (scoreRef.current > best) {
-          setBest(scoreRef.current);
-          localStorage.setItem("wedding_runner_best_v2", String(scoreRef.current));
-        }
-      } catch {}
-    },
-    [best, syncState],
-  );
-
-  const start = useCallback(() => {
-    reset();
-    syncState("playing");
-  }, [reset, syncState]);
-
-  const jump = useCallback(() => {
-    if (stateRef.current !== "playing") return;
-    if (!onGroundRef.current) return;
-    vyRef.current = JUMP_V;
-    onGroundRef.current = false;
+  // 러너 레인 이동
+  const moveLane = useCallback((delta: -1 | 1) => {
+    if (phaseRef.current !== "runner") return;
+    laneRef.current = Math.max(0, Math.min(LANES - 1, laneRef.current + delta));
   }, []);
 
+  // 집 탈출 이동
+  const movePlayer = useCallback((dx: number, dy: number) => {
+    if (phaseRef.current !== "home") return;
+    if (moveTimerRef.current > 0) return;
+    const p = playerRef.current;
+    p.facing = dx === -1 ? "left" : dx === 1 ? "right" : dy === -1 ? "up" : "down";
+    const nc = p.col + dx;
+    const nr = p.row + dy;
+    if (nr < 0 || nr >= HOME_MAP.length || nc < 0 || nc >= HOME_MAP[0].length) return;
+    const tile = HOME_MAP[nr][nc];
+    if (tile === 1 || tile === 2 || tile === 3) return; // 벽/침대/책상 블록
+    if (tile === 5) {
+      // 현관문 → 마을로
+      setPhaseBoth("town");
+      return;
+    }
+    p.col = nc;
+    p.row = nr;
+    moveTimerRef.current = 0.12;
+  }, [setPhaseBoth]);
+
+  // 키보드 입력
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === " " || e.key === "ArrowUp" || e.key === "w" || e.key === "W") {
-        e.preventDefault();
-        jump();
+      if (phaseRef.current === "intro") {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          advanceDialog(INTRO_LINES, () => setPhaseBoth("home"));
+        }
+        return;
+      }
+      if (phaseRef.current === "home") {
+        if (e.key === "ArrowLeft") movePlayer(-1, 0);
+        else if (e.key === "ArrowRight") movePlayer(1, 0);
+        else if (e.key === "ArrowUp") movePlayer(0, -1);
+        else if (e.key === "ArrowDown") movePlayer(0, 1);
+        else if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          advanceDialog(HOME_LINES, () => {});
+        }
+        return;
+      }
+      if (phaseRef.current === "town") {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          advanceDialog(TOWN_LINES, () => startRunner());
+        }
+        return;
+      }
+      if (phaseRef.current === "runner") {
+        if (e.key === "ArrowLeft") moveLane(-1);
+        else if (e.key === "ArrowRight") moveLane(1);
+        return;
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [jump]);
+  }, [advanceDialog, movePlayer, moveLane, setPhaseBoth, startRunner]);
 
+  // 터치 스와이프 (러너 전용)
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+  const onTouchStart = (e: React.TouchEvent) => {
+    if (phaseRef.current !== "runner") return;
+    const t = e.touches[0];
+    touchStartRef.current = { x: t.clientX, y: t.clientY };
+  };
+  const onTouchEnd = (e: React.TouchEvent) => {
+    if (phaseRef.current !== "runner") return;
+    const s = touchStartRef.current;
+    if (!s) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - s.x;
+    if (Math.abs(dx) > 24) moveLane(dx < 0 ? -1 : 1);
+    touchStartRef.current = null;
+  };
+
+  // 러너 업데이트 & 모든 phase 렌더 루프
   useEffect(() => {
-    if (state !== "playing") return;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
+    ctx.imageSmoothingEnabled = false;
 
     const loop = (ts: number) => {
-      if (stateRef.current !== "playing") return;
       const last = lastTsRef.current ?? ts;
       const dt = Math.min(0.05, (ts - last) / 1000);
       lastTsRef.current = ts;
+      cursorBlinkRef.current = (cursorBlinkRef.current + dt) % 1.2;
 
-      timeLeftRef.current -= dt;
-      if (timeLeftRef.current <= 0) {
-        scoreRef.current += 500;
-        setScore(scoreRef.current);
-        setRemain(0);
-        endGame("cleared");
-        return;
-      }
-      setRemain(Math.max(0, Math.ceil(timeLeftRef.current)));
+      const ph = phaseRef.current;
 
-      if (invincibleRef.current > 0) invincibleRef.current -= dt;
-
-      // 시간 지남에 따라 가속
-      speedRef.current = Math.min(280, speedRef.current + 3 * dt);
-
-      // 점프 물리
-      vyRef.current += GRAVITY * dt;
-      playerYRef.current += vyRef.current * dt;
-      if (playerYRef.current >= GROUND_Y) {
-        playerYRef.current = GROUND_Y;
-        vyRef.current = 0;
-        onGroundRef.current = true;
-      }
-
-      // 달리기 애니메이션
-      if (onGroundRef.current) {
-        animTimerRef.current += dt;
-        if (animTimerRef.current > 0.11) {
-          animTimerRef.current = 0;
-          animFrameRef.current = 1 - animFrameRef.current;
+      // phase별 업데이트
+      if (ph === "intro") {
+        // 타자 효과
+        const line = INTRO_LINES[dialogIdxRef.current] ?? "";
+        if (dialogCharsRef.current < line.length) {
+          dialogCharsRef.current = Math.min(line.length, dialogCharsRef.current + dt * 38);
+          setDialogChars(Math.floor(dialogCharsRef.current));
         }
-      }
-
-      scrollRef.current += speedRef.current * dt;
-
-      // 엔티티 스폰
-      spawnTimerRef.current -= dt;
-      if (spawnTimerRef.current <= 0) {
-        spawnTimerRef.current = 0.75 + Math.random() * 0.55;
-        const r = Math.random();
-        let kind: EntKind;
-        if (r < 0.22) kind = "ring";
-        else if (r < 0.4) kind = "heart";
-        else if (r < 0.48) kind = "champagne";
-        else if (r < 0.7) kind = "envelope";
-        else if (r < 0.88) kind = "cake";
-        else kind = "bench";
-
-        let ey = GROUND_Y;
-        if (kind === "ring" || kind === "heart" || kind === "champagne") {
-          ey = GROUND_Y - 55 - Math.random() * 35;
+      } else if (ph === "home") {
+        if (moveTimerRef.current > 0) moveTimerRef.current -= dt;
+        const line = HOME_LINES[dialogIdxRef.current] ?? "";
+        if (dialogCharsRef.current < line.length) {
+          dialogCharsRef.current = Math.min(line.length, dialogCharsRef.current + dt * 38);
+          setDialogChars(Math.floor(dialogCharsRef.current));
         }
-        entsRef.current.push({ kind, x: GAME_W + 30, y: ey });
-      }
+      } else if (ph === "town") {
+        townScrollRef.current = (townScrollRef.current + dt * 22) % (VW * 2);
+        const line = TOWN_LINES[dialogIdxRef.current] ?? "";
+        if (dialogCharsRef.current < line.length) {
+          dialogCharsRef.current = Math.min(line.length, dialogCharsRef.current + dt * 38);
+          setDialogChars(Math.floor(dialogCharsRef.current));
+        }
+      } else if (ph === "runner") {
+        remainRef.current -= dt;
+        runScrollRef.current = (runScrollRef.current + dt * 120) % 32;
+        if (invincRef.current > 0) invincRef.current -= dt;
+        setRemain(Math.max(0, Math.ceil(remainRef.current)));
 
-      // 업데이트 + 충돌
-      const survivors: Ent[] = [];
-      const px = PLAYER_X;
-      const pyCenter = playerYRef.current - PLAYER_H / 2;
-      for (const e of entsRef.current) {
-        e.x -= speedRef.current * dt;
-        if (e.x < -60) continue;
+        // 스폰
+        spawnRef.current -= dt;
+        if (spawnRef.current <= 0) {
+          spawnRef.current = 0.55 + Math.random() * 0.4;
+          const lane = Math.floor(Math.random() * LANES);
+          const r = Math.random();
+          const kind: RunnerItem["kind"] =
+            r < 0.25 ? "ring"
+            : r < 0.45 ? "heart"
+            : r < 0.52 ? "bouquet"
+            : r < 0.62 ? "champagne"
+            : r < 0.78 ? "envelope"
+            : r < 0.92 ? "cake"
+            : "kid";
+          itemsRef.current.push({ kind, lane, y: -20 });
+        }
 
-        if (!e.collected) {
-          let hitR = 18;
-          let ecy = e.y;
-          if (e.kind === "envelope" || e.kind === "bench") {
-            ecy = e.y - 10;
-            hitR = 16;
-          } else if (e.kind === "cake") {
-            ecy = e.y - 18;
-            hitR = 22;
-          }
-          const dx = Math.abs(e.x - px);
-          const dy = Math.abs(ecy - pyCenter);
-          const hit = dx < hitR && dy < hitR + 6;
-
-          if (hit) {
-            if (e.kind === "ring") {
-              scoreRef.current += 100;
-              e.collected = true;
-              setScore(scoreRef.current);
-            } else if (e.kind === "heart") {
-              scoreRef.current += 50;
-              e.collected = true;
-              setScore(scoreRef.current);
-            } else if (e.kind === "champagne") {
-              scoreRef.current += 150;
-              invincibleRef.current = 3;
-              e.collected = true;
-              setScore(scoreRef.current);
-            } else if (e.kind === "envelope" || e.kind === "bench" || e.kind === "cake") {
-              if (invincibleRef.current <= 0) {
-                livesRef.current -= 1;
-                invincibleRef.current = 1.2;
-                scoreRef.current = Math.max(0, scoreRef.current - 50);
-                setScore(scoreRef.current);
-                setLives(livesRef.current);
-                e.collected = true;
-                if (livesRef.current <= 0) {
-                  endGame("over");
-                  return;
-                }
-              }
+        // 이동 + 충돌
+        const playerY = VH - 60;
+        const playerLane = laneRef.current;
+        for (const it of itemsRef.current) {
+          it.y += dt * 180;
+          if (Math.abs(it.y - playerY) < 20 && it.lane === playerLane) {
+            // 충돌
+            if (it.kind === "ring") { scoreRef.current += 100; it.y = VH + 99; }
+            else if (it.kind === "heart") { scoreRef.current += 50; it.y = VH + 99; }
+            else if (it.kind === "bouquet") { scoreRef.current += 300; it.y = VH + 99; }
+            else if (it.kind === "champagne") { scoreRef.current += 150; invincRef.current = 3; it.y = VH + 99; }
+            else if (it.kind === "envelope") {
+              if (invincRef.current <= 0) scoreRef.current = Math.max(0, scoreRef.current - 100);
+              it.y = VH + 99;
+            } else if (it.kind === "kid") {
+              if (invincRef.current <= 0) { livesRef.current -= 1; scoreRef.current = Math.max(0, scoreRef.current - 200); }
+              it.y = VH + 99;
+            } else if (it.kind === "cake") {
+              if (invincRef.current <= 0) { livesRef.current = 0; }
+              else { it.y = VH + 99; }
             }
-            continue;
+            setScore(scoreRef.current);
+            setLives(livesRef.current);
           }
         }
-        survivors.push(e);
+        itemsRef.current = itemsRef.current.filter((e) => e.y < VH + 40);
+
+        if (livesRef.current <= 0) { endRunner(false); }
+        else if (remainRef.current <= 0) { endRunner(true); }
       }
-      entsRef.current = survivors;
 
       // 렌더
-      drawBackground(ctx, scrollRef.current);
-      drawGround(ctx, scrollRef.current);
-
-      // 멀리 보이는 예식장 (골인 지점 느낌)
-      const chapelX = GAME_W - 110 + Math.sin(scrollRef.current * 0.003) * 4;
-      drawChapel(ctx, chapelX, scrollRef.current);
-
-      for (const e of entsRef.current) drawEntity(ctx, e);
-
-      const blink = invincibleRef.current > 0 && Math.floor(ts / 70) % 2 === 0;
-      if (!blink) drawGroomPixel(ctx, px, playerYRef.current, animFrameRef.current);
+      drawScene(ctx, ph, {
+        sex: sexRef.current,
+        homeMap: HOME_MAP,
+        player: playerRef.current,
+        townScroll: townScrollRef.current,
+        dialogIdx: dialogIdxRef.current,
+        dialogChars: dialogCharsRef.current,
+        cursorBlink: cursorBlinkRef.current,
+        runner: {
+          lane: laneRef.current,
+          items: itemsRef.current,
+          invinc: invincRef.current,
+          remain: remainRef.current,
+          score: scoreRef.current,
+          lives: livesRef.current,
+          scroll: runScrollRef.current,
+        },
+        nickname,
+      });
 
       rafRef.current = requestAnimationFrame(loop);
     };
-
     rafRef.current = requestAnimationFrame(loop);
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      lastTsRef.current = null;
     };
-  }, [state, endGame]);
+  }, [endRunner, nickname]);
 
-  const onTouchStart = (e: React.TouchEvent) => {
-    if (stateRef.current !== "playing") return;
-    e.preventDefault();
-    jump();
-  };
+  // 캔버스 클릭/탭 = 대사 진행 or 레인 이동 안내
+  const onCanvasClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    const p = phaseRef.current;
+    if (p === "intro") {
+      advanceDialog(INTRO_LINES, () => setPhaseBoth("home"));
+    } else if (p === "home") {
+      advanceDialog(HOME_LINES, () => {});
+    } else if (p === "town") {
+      advanceDialog(TOWN_LINES, () => startRunner());
+    } else if (p === "runner") {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      if (x < rect.width / 2) moveLane(-1);
+      else moveLane(1);
+    }
+  }, [advanceDialog, moveLane, setPhaseBoth, startRunner]);
 
   return (
-    <section className="px-5 py-10 bg-white">
+    <section className="px-5 pt-6 pb-14">
+      <SectionHead kicker="Wedding Quest" title="웨딩 어드벤처" />
       <Card>
-        <SectionHead kicker="Mini Game" title="웨딩 러너" />
-        <p className="mb-5 text-center text-[13px] text-[color:var(--color-mute)] leading-loose">
-          신랑이 예식장을 향해 달립니다.
-          <br />
-          탭 또는 스페이스로 점프해 장애물을 피하고 반지 · 하트 · 샴페인을 모아주세요.
-        </p>
-
-        <div className="mx-auto max-w-[480px]">
-          <div className="mb-3 flex items-center justify-between text-[12px] tracking-widest text-[color:var(--color-mute)]">
-            <span>
-              SCORE <b className="ml-1 text-[color:var(--color-rose-deep)] text-base">{score}</b>
-            </span>
-            <span>
-              TIME <b className="ml-1 text-[color:var(--color-rose-deep)] text-base">{remain}</b>
-            </span>
-            <span>
-              LIFE <b className="ml-1 text-[color:var(--color-rose-deep)] text-base">{"♥".repeat(Math.max(0, lives))}</b>
-            </span>
-            <span>
-              BEST <b className="ml-1 text-[color:var(--color-charcoal)] text-base">{best}</b>
-            </span>
-          </div>
-
+        <div className="px-4 py-6 bg-[color:var(--color-blush)] rounded-2xl">
           <div
-            className="relative overflow-hidden rounded-2xl border border-[color:var(--color-rose)]/25 bg-[#fdfbf7]"
-            style={{ touchAction: state === "playing" ? "none" : "auto", imageRendering: "pixelated" }}
+            className="mx-auto relative select-none"
+            style={{ maxWidth: 360 }}
             onTouchStart={onTouchStart}
+            onTouchEnd={onTouchEnd}
           >
             <canvas
               ref={canvasRef}
-              width={GAME_W}
-              height={GAME_H}
-              className="block w-full h-auto select-none"
-              style={{ imageRendering: "pixelated" }}
+              width={VW}
+              height={VH}
+              onClick={onCanvasClick}
+              className="w-full h-auto rounded-lg border border-[color:var(--color-rose)]/30 block"
+              style={{ imageRendering: "pixelated", touchAction: "manipulation", aspectRatio: `${VW}/${VH}` }}
             />
 
-            {state === "idle" && (
-              <GameOverlay
-                title="Wedding Runner"
-                description="탭 또는 스페이스로 점프!"
-                btn="시작하기"
-                onClick={start}
-              />
+            {/* Phase별 HUD/오버레이 */}
+            {phase === "intro" && (
+              <div className="mt-3 flex flex-col gap-2">
+                <label className="text-[11px] tracking-widest opacity-70">내 이름 (선택)</label>
+                <input
+                  value={nickname}
+                  onChange={(e) => setNickname(e.target.value.slice(0, 10))}
+                  placeholder="리더보드 표시용"
+                  className="px-3 py-2 rounded-md bg-white/70 border border-[color:var(--color-rose)]/30 text-[13px]"
+                />
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => { sexRef.current = "groom"; setSex("groom"); }}
+                    className={`flex-1 py-2 rounded-md text-[12px] tracking-widest border ${sex === "groom" ? "bg-[color:var(--color-rose-deep)] text-white border-transparent" : "border-[color:var(--color-rose)]/40"}`}
+                  >
+                    신랑
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { sexRef.current = "bride"; setSex("bride"); }}
+                    className={`flex-1 py-2 rounded-md text-[12px] tracking-widest border ${sex === "bride" ? "bg-[color:var(--color-rose-deep)] text-white border-transparent" : "border-[color:var(--color-rose)]/40"}`}
+                  >
+                    신부
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setPhaseBoth("runner")}
+                  className="mt-1 py-2 rounded-md bg-white/70 border border-[color:var(--color-rose)]/30 text-[11px] tracking-widest opacity-80"
+                >
+                  ⏭ 오프닝 스킵 → 러너로
+                </button>
+              </div>
             )}
-            {state === "cleared" && (
-              <GameOverlay
-                title="결혼했다! 🎉"
-                description={`60초 완주 · 보너스 +500\n최종 점수 ${score}`}
-                btn="다시 하기"
-                onClick={start}
-              />
-            )}
-            {state === "over" && (
-              <GameOverlay
-                title="GAME OVER"
-                description={`최종 점수 ${score}`}
-                btn="다시 하기"
-                onClick={start}
-              />
-            )}
-          </div>
 
-          <div className="mt-3 sm:hidden">
-            <button
-              onTouchStart={(e) => {
-                e.preventDefault();
-                jump();
-              }}
-              className="w-full py-4 rounded-xl border border-[color:var(--color-rose)]/30 text-[color:var(--color-rose-deep)] tracking-[0.3em] text-[13px]"
-            >
-              ↑ JUMP
-            </button>
-          </div>
+            {phase === "runner" && (
+              <div className="mt-3 flex items-center justify-between text-[12px] font-mono">
+                <span>⏱ {remain}s</span>
+                <span>♥ {"♥".repeat(Math.max(0, lives))}</span>
+                <span>SCORE {score}</span>
+                <span className="opacity-60">BEST {best}</span>
+              </div>
+            )}
 
-          <div className="mt-5 grid grid-cols-5 gap-1 text-[11px] tracking-wide text-[color:var(--color-mute)] text-center">
-            <LegendDot color="#e89378" label="반지 +100" />
-            <LegendDot color="#f0a3a3" label="하트 +50" />
-            <LegendDot color="#d4b876" label="샴페인 +150" />
-            <LegendDot color="#b29c91" label="봉투 −HP" />
-            <LegendDot color="#8a5a4f" label="케이크 −HP" />
+            {phase === "runner" && (
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => moveLane(-1)}
+                  className="py-3 rounded-md bg-white/70 border border-[color:var(--color-rose)]/30 text-[13px] tracking-widest"
+                >
+                  ◀ LEFT
+                </button>
+                <button
+                  type="button"
+                  onClick={() => moveLane(1)}
+                  className="py-3 rounded-md bg-white/70 border border-[color:var(--color-rose)]/30 text-[13px] tracking-widest"
+                >
+                  RIGHT ▶
+                </button>
+              </div>
+            )}
+
+            {(phase === "cleared" || phase === "over") && (
+              <div className="mt-3 text-center">
+                <p className="text-[13px] tracking-widest mb-2">
+                  {phase === "cleared" ? "🎉 결혼했다!" : "💔 GAME OVER"}
+                </p>
+                <p className="text-[11px] opacity-70 mb-3">
+                  점수 {score} · 베스트 {best}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => { setPhaseBoth("intro"); }}
+                  className="px-5 py-2 rounded-md bg-[color:var(--color-rose-deep)] text-white text-[12px] tracking-widest"
+                >
+                  다시 하기
+                </button>
+              </div>
+            )}
+
+            <p className="mt-3 text-center text-[10px] tracking-widest opacity-55">
+              탭/클릭 = 대화 진행 · ← → 또는 스와이프 = 이동
+            </p>
           </div>
         </div>
       </Card>
@@ -933,287 +1052,533 @@ function MiniGame() {
   );
 }
 
-// ─── 픽셀 아트 스프라이트 ────────────────────────────────
-function drawGroomPixel(ctx: CanvasRenderingContext2D, cx: number, footY: number, frame: number) {
-  const s = 2; // 픽셀 스케일
-  const ox = Math.round(cx - 8);
-  const oy = Math.round(footY - 17 * s);
+// ─────────────────────────────────────────────────────────
+//  드로잉 레이어 — 전부 오리지널 도트 (IP 직카피 NO)
+// ─────────────────────────────────────────────────────────
 
-  const rect = (col: number, row: number, w: number, h: number, color: string) => {
-    ctx.fillStyle = color;
-    ctx.fillRect(ox + col * s, oy + row * s, w * s, h * s);
+type DrawCtx = {
+  sex: Sex;
+  homeMap: number[][];
+  player: { col: number; row: number; facing: "up" | "down" | "left" | "right" };
+  townScroll: number;
+  dialogIdx: number;
+  dialogChars: number;
+  cursorBlink: number;
+  runner: {
+    lane: number;
+    items: RunnerItem[];
+    invinc: number;
+    remain: number;
+    score: number;
+    lives: number;
+    scroll: number;
   };
+  nickname: string;
+};
 
-  const HAIR = "#2b1810";
-  const SKIN = "#f9d3b4";
-  const CHEEK = "#f0a3a3";
-  const EYE = "#2b1810";
-  const SUIT = "#2b2824";
-  const SHIRT = "#ffffff";
-  const BOW = "#e89378";
-  const PANTS = "#1a1715";
-  const SHOE = "#0a0807";
+function drawScene(ctx: CanvasRenderingContext2D, phase: Phase, c: DrawCtx) {
+  ctx.imageSmoothingEnabled = false;
+  // 배경 기본 클리어
+  ctx.fillStyle = "#f7ecea";
+  ctx.fillRect(0, 0, VW, VH);
 
-  // 머리
-  rect(2, 0, 4, 1, HAIR);
-  rect(1, 1, 6, 1, HAIR);
-  // 얼굴
-  rect(1, 2, 6, 1, SKIN);
-  rect(1, 2, 6, 1, SKIN);
-  rect(2, 3, 4, 1, SKIN);
-  rect(1, 4, 6, 1, SKIN);
-  // 눈
-  rect(2, 3, 1, 1, EYE);
-  rect(5, 3, 1, 1, EYE);
-  // 볼
-  rect(1, 4, 1, 1, CHEEK);
-  rect(6, 4, 1, 1, CHEEK);
-  // 턱
-  rect(2, 5, 4, 1, SKIN);
-  // 어깨 + 턱시도
-  rect(0, 6, 8, 1, SUIT);
-  rect(0, 7, 2, 4, SUIT); // 왼쪽 옷깃
-  rect(6, 7, 2, 4, SUIT); // 오른쪽 옷깃
-  rect(2, 7, 4, 4, SHIRT); // 셔츠
-  rect(3, 7, 2, 1, BOW); // 나비넥타이
-  // 허리
-  rect(0, 11, 8, 1, SUIT);
-  // 다리
-  if (frame === 0) {
-    rect(1, 12, 2, 3, PANTS);
-    rect(5, 12, 2, 3, PANTS);
-    rect(1, 15, 3, 1, SHOE);
-    rect(4, 15, 3, 1, SHOE);
-  } else {
-    rect(2, 12, 2, 3, PANTS);
-    rect(4, 12, 2, 3, PANTS);
-    rect(2, 15, 3, 1, SHOE);
-    rect(3, 15, 3, 1, SHOE);
+  if (phase === "intro") drawIntro(ctx, c);
+  else if (phase === "home") drawHome(ctx, c);
+  else if (phase === "town") drawTown(ctx, c);
+  else if (phase === "runner") drawRunner(ctx, c);
+  else if (phase === "cleared") drawEnding(ctx, c, true);
+  else if (phase === "over") drawEnding(ctx, c, false);
+}
+
+// 대화창 (포켓몬 감성의 하단 2줄 박스 + ▼ 커서)
+function drawDialogBox(ctx: CanvasRenderingContext2D, text: string, chars: number, blink: number, showCursor: boolean) {
+  const boxH = 72;
+  const y = VH - boxH - 6;
+  // 흰색 박스
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(6, y, VW - 12, boxH);
+  // 내측 보더
+  ctx.strokeStyle = "#8a5a5a";
+  ctx.lineWidth = 2;
+  ctx.strokeRect(6, y, VW - 12, boxH);
+  ctx.strokeStyle = "#c9a6a0";
+  ctx.strokeRect(10, y + 4, VW - 20, boxH - 8);
+
+  // 본문
+  ctx.fillStyle = "#3d2b28";
+  ctx.font = "12px ui-monospace, SFMono-Regular, Menlo, monospace";
+  const shown = text.slice(0, chars);
+  const lines = wrapText(ctx, shown, VW - 40);
+  for (let i = 0; i < lines.length && i < 3; i++) {
+    ctx.fillText(lines[i], 18, y + 20 + i * 16);
+  }
+
+  // ▼ 커서 (블링크)
+  if (showCursor && chars >= text.length && blink < 0.6) {
+    ctx.fillStyle = "#8a5a5a";
+    ctx.beginPath();
+    ctx.moveTo(VW - 22, y + boxH - 14);
+    ctx.lineTo(VW - 14, y + boxH - 14);
+    ctx.lineTo(VW - 18, y + boxH - 8);
+    ctx.fill();
   }
 }
 
-function drawChapel(ctx: CanvasRenderingContext2D, x: number, scroll: number) {
-  // 배경 예식장 (골인 지점 이미지)
-  const y = GROUND_Y - 80;
-  const parallax = Math.sin(scroll * 0.004) * 2;
-  ctx.fillStyle = "#fffdf8";
-  ctx.fillRect(x - 40, y + 20 + parallax, 80, 60);
-  // 지붕
-  ctx.fillStyle = "#e89378";
+function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
+  const lines: string[] = [];
+  let cur = "";
+  for (const ch of text) {
+    const test = cur + ch;
+    if (ctx.measureText(test).width > maxWidth) {
+      if (cur) lines.push(cur);
+      cur = ch;
+    } else {
+      cur = test;
+    }
+  }
+  if (cur) lines.push(cur);
+  return lines;
+}
+
+// ───── 캐릭터 도트 (오리지널) ─────
+// 신랑: 검은 턱시도 + 흰 와이셔츠 + 나비넥타이
+// 신부: 흰 드레스 + 면사포
+function drawHero(ctx: CanvasRenderingContext2D, cx: number, cy: number, facing: string, sex: Sex, tick: number) {
+  // 그림자
+  ctx.fillStyle = "rgba(0,0,0,0.2)";
   ctx.beginPath();
-  ctx.moveTo(x - 45, y + 20 + parallax);
-  ctx.lineTo(x, y - 10 + parallax);
-  ctx.lineTo(x + 45, y + 20 + parallax);
+  ctx.ellipse(cx, cy + 14, 7, 2.5, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // 다리 2프레임
+  const legSwap = Math.floor(tick * 6) % 2 === 0;
+  // 몸
+  ctx.fillStyle = sex === "bride" ? "#f8efe8" : "#2a2a38";
+  ctx.fillRect(cx - 5, cy - 2, 10, 12);
+  // 셔츠 V (신랑)
+  if (sex === "groom") {
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(cx - 2, cy, 4, 8);
+    // 나비넥타이
+    ctx.fillStyle = "#c94a4a";
+    ctx.fillRect(cx - 2, cy, 4, 2);
+  } else {
+    // 드레스 치마
+    ctx.fillStyle = "#ffe4e4";
+    ctx.fillRect(cx - 6, cy + 6, 12, 6);
+  }
+  // 얼굴
+  ctx.fillStyle = "#f5d0b5";
+  ctx.fillRect(cx - 4, cy - 10, 8, 8);
+  // 머리
+  ctx.fillStyle = sex === "bride" ? "#efe0cf" : "#2b1e16";
+  if (facing === "up") {
+    ctx.fillRect(cx - 5, cy - 13, 10, 6);
+  } else {
+    ctx.fillRect(cx - 5, cy - 13, 10, 4);
+    ctx.fillRect(cx - 5, cy - 10, 2, 3);
+    ctx.fillRect(cx + 3, cy - 10, 2, 3);
+  }
+  // 면사포 (신부)
+  if (sex === "bride") {
+    ctx.fillStyle = "rgba(255,255,255,0.75)";
+    ctx.fillRect(cx - 6, cy - 14, 12, 2);
+    ctx.fillRect(cx - 5, cy - 6, 1, 6);
+    ctx.fillRect(cx + 4, cy - 6, 1, 6);
+  }
+  // 눈
+  if (facing !== "up") {
+    ctx.fillStyle = "#1a1a1a";
+    if (facing === "left") { ctx.fillRect(cx - 3, cy - 7, 1, 2); }
+    else if (facing === "right") { ctx.fillRect(cx + 2, cy - 7, 1, 2); }
+    else { ctx.fillRect(cx - 3, cy - 7, 1, 2); ctx.fillRect(cx + 2, cy - 7, 1, 2); }
+  }
+  // 다리
+  ctx.fillStyle = "#1a1a1a";
+  if (legSwap) {
+    ctx.fillRect(cx - 4, cy + 10, 3, 4);
+    ctx.fillRect(cx + 1, cy + 10, 3, 4);
+  } else {
+    ctx.fillRect(cx - 3, cy + 10, 3, 4);
+    ctx.fillRect(cx, cy + 10, 3, 4);
+  }
+}
+
+// ───── Phase 1 인트로 ─────
+function drawIntro(ctx: CanvasRenderingContext2D, c: DrawCtx) {
+  // 배경 — 별들
+  ctx.fillStyle = "#2d1b2c";
+  ctx.fillRect(0, 0, VW, VH - 80);
+  ctx.fillStyle = "#fff3c6";
+  for (let i = 0; i < 24; i++) {
+    const sx = (i * 37) % VW;
+    const sy = (i * 53) % (VH - 120);
+    ctx.fillRect(sx, sy, 1, 1);
+  }
+  // 타이틀 리본
+  ctx.fillStyle = "#e89378";
+  ctx.fillRect(20, 18, VW - 40, 28);
+  ctx.fillStyle = "#fff";
+  ctx.font = "bold 14px ui-sans-serif, system-ui";
+  ctx.textAlign = "center";
+  ctx.fillText("WEDDING QUEST", VW / 2, 37);
+  ctx.textAlign = "left";
+  // 축박사 NPC (가운데)
+  const px = VW / 2;
+  const py = VH / 2 - 20;
+  // 안경 할아버지 실루엣 (오리지널)
+  ctx.fillStyle = "#f5d0b5";
+  ctx.fillRect(px - 8, py - 10, 16, 14);
+  ctx.fillStyle = "#c9c9c9";
+  ctx.fillRect(px - 10, py - 18, 20, 8);
+  ctx.fillStyle = "#5a3a1a";
+  ctx.fillRect(px - 9, py + 4, 18, 22);
+  // 안경
+  ctx.strokeStyle = "#1a1a1a";
+  ctx.lineWidth = 1;
+  ctx.strokeRect(px - 7, py - 6, 5, 4);
+  ctx.strokeRect(px + 2, py - 6, 5, 4);
+  ctx.beginPath();
+  ctx.moveTo(px - 2, py - 4);
+  ctx.lineTo(px + 2, py - 4);
+  ctx.stroke();
+  // 가운 라벨
+  ctx.fillStyle = "#fff";
+  ctx.font = "10px ui-monospace";
+  ctx.textAlign = "center";
+  ctx.fillText("축박사", px, py + 40);
+  ctx.textAlign = "left";
+  // 대화창
+  drawDialogBox(ctx, INTRO_LINES[c.dialogIdx] ?? "", c.dialogChars, c.cursorBlink, true);
+}
+
+// ───── Phase 2 집 ─────
+function drawHome(ctx: CanvasRenderingContext2D, c: DrawCtx) {
+  // 오프셋으로 중앙 정렬
+  const mapW = c.homeMap[0].length * TILE;
+  const mapH = c.homeMap.length * TILE;
+  const ox = Math.floor((VW - mapW) / 2);
+  const oy = 16;
+  ctx.fillStyle = "#9fc99a";
+  ctx.fillRect(0, 0, VW, VH);
+  for (let r = 0; r < c.homeMap.length; r++) {
+    for (let cc = 0; cc < c.homeMap[r].length; cc++) {
+      const t = c.homeMap[r][cc];
+      const x = ox + cc * TILE;
+      const y = oy + r * TILE;
+      if (t === 0) {
+        ctx.fillStyle = "#e8d7b4"; // 바닥
+        ctx.fillRect(x, y, TILE, TILE);
+      } else if (t === 1) {
+        ctx.fillStyle = "#7a5a48"; // 벽
+        ctx.fillRect(x, y, TILE, TILE);
+        ctx.fillStyle = "#9a7a60";
+        ctx.fillRect(x, y, TILE, 3);
+      } else if (t === 2) {
+        ctx.fillStyle = "#e8d7b4";
+        ctx.fillRect(x, y, TILE, TILE);
+        ctx.fillStyle = "#c94a4a"; // 침대 매트
+        ctx.fillRect(x + 1, y + 1, TILE - 2, TILE - 5);
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(x + 2, y + 2, 5, 4);
+      } else if (t === 3) {
+        ctx.fillStyle = "#e8d7b4";
+        ctx.fillRect(x, y, TILE, TILE);
+        ctx.fillStyle = "#6e4d2e"; // 책상
+        ctx.fillRect(x + 1, y + 2, TILE - 2, TILE - 4);
+      } else if (t === 4) {
+        ctx.fillStyle = "#d9a0a0"; // 카펫
+        ctx.fillRect(x, y, TILE, TILE);
+      } else if (t === 5) {
+        ctx.fillStyle = "#3a2a1a"; // 문
+        ctx.fillRect(x + 2, y, TILE - 4, TILE);
+        ctx.fillStyle = "#f2d37a";
+        ctx.fillRect(x + TILE - 6, y + 8, 2, 2);
+      } else if (t === 9) {
+        ctx.fillStyle = "#e8d7b4";
+        ctx.fillRect(x, y, TILE, TILE);
+        // 엄마 NPC
+        ctx.fillStyle = "#c85b9f";
+        ctx.fillRect(x + 4, y + 5, 8, 9);
+        ctx.fillStyle = "#f5d0b5";
+        ctx.fillRect(x + 5, y + 1, 6, 5);
+        ctx.fillStyle = "#5a3a1a";
+        ctx.fillRect(x + 4, y, 8, 3);
+      }
+    }
+  }
+  // 플레이어
+  const p = c.player;
+  drawHero(
+    ctx,
+    ox + p.col * TILE + TILE / 2,
+    oy + p.row * TILE + TILE / 2,
+    p.facing,
+    c.sex,
+    performance.now() / 1000,
+  );
+  // 힌트 + 대화창
+  ctx.fillStyle = "rgba(0,0,0,0.45)";
+  ctx.fillRect(0, 0, VW, 14);
+  ctx.fillStyle = "#fff";
+  ctx.font = "10px ui-monospace";
+  ctx.fillText("← → ↑ ↓ 이동 · 문으로 나가기", 6, 10);
+
+  drawDialogBox(ctx, HOME_LINES[c.dialogIdx] ?? "", c.dialogChars, c.cursorBlink, true);
+}
+
+// ───── Phase 3 마을 ─────
+function drawTown(ctx: CanvasRenderingContext2D, c: DrawCtx) {
+  // 하늘 + 잔디
+  const sky = ctx.createLinearGradient(0, 0, 0, VH);
+  sky.addColorStop(0, "#b5d9ff");
+  sky.addColorStop(1, "#e9d7b0");
+  ctx.fillStyle = sky;
+  ctx.fillRect(0, 0, VW, VH);
+  // 지면 타일 2줄
+  ctx.fillStyle = "#7ab770";
+  ctx.fillRect(0, VH - 140, VW, 60);
+  // 길
+  ctx.fillStyle = "#caa678";
+  ctx.fillRect(0, VH - 130, VW, 40);
+  // 집 실루엣 스크롤
+  const offset = -c.townScroll;
+  for (let i = -1; i < 4; i++) {
+    const hx = (i * 140 + offset) % (VW * 2);
+    const hy = VH - 170;
+    drawTownHouse(ctx, hx + 40, hy, i % 3);
+  }
+  // 식장 (오른쪽 끝)
+  drawChapelPixel(ctx, VW - 70 - offset * 0.5, VH - 180);
+  // NPC 2명
+  drawNPC(ctx, 70 + Math.sin(c.townScroll / 40) * 2, VH - 120, "#e89378");
+  drawNPC(ctx, 200, VH - 115, "#7a9ac9");
+  // 주인공
+  drawHero(ctx, VW / 2, VH - 115, "down", c.sex, performance.now() / 1000);
+  // 타이틀
+  ctx.fillStyle = "rgba(0,0,0,0.35)";
+  ctx.fillRect(0, 0, VW, 14);
+  ctx.fillStyle = "#fff";
+  ctx.font = "10px ui-monospace";
+  ctx.fillText("TOWN · 식장으로 향하는 길", 6, 10);
+  // 대화창
+  drawDialogBox(ctx, TOWN_LINES[c.dialogIdx] ?? "", c.dialogChars, c.cursorBlink, true);
+}
+
+function drawTownHouse(ctx: CanvasRenderingContext2D, x: number, y: number, variant: number) {
+  const colors = ["#e3b09a", "#c9a2d4", "#a0c7a2"];
+  ctx.fillStyle = "#7a4a3a";
+  ctx.beginPath();
+  ctx.moveTo(x - 28, y);
+  ctx.lineTo(x + 28, y);
+  ctx.lineTo(x, y - 18);
   ctx.closePath();
   ctx.fill();
-  // 십자 장식
-  ctx.fillStyle = "#c97a62";
-  ctx.fillRect(x - 2, y - 22 + parallax, 4, 14);
-  ctx.fillRect(x - 6, y - 18 + parallax, 12, 3);
-  // 문
-  ctx.fillStyle = "#8a5a4f";
-  ctx.fillRect(x - 10, y + 50 + parallax, 20, 30);
-  ctx.fillStyle = "#d4b876";
-  ctx.fillRect(x - 1, y + 55 + parallax, 2, 6);
-  // 창문
-  ctx.fillStyle = "#d4b876";
-  ctx.fillRect(x - 28, y + 35 + parallax, 10, 12);
-  ctx.fillRect(x + 18, y + 35 + parallax, 10, 12);
+  ctx.fillStyle = colors[variant] ?? colors[0];
+  ctx.fillRect(x - 24, y, 48, 28);
+  ctx.fillStyle = "#3a2a1a";
+  ctx.fillRect(x - 6, y + 10, 12, 18);
+  ctx.fillStyle = "#ffd36a";
+  ctx.fillRect(x - 18, y + 6, 6, 6);
+  ctx.fillRect(x + 12, y + 6, 6, 6);
 }
 
-function drawBackground(ctx: CanvasRenderingContext2D, scroll: number) {
-  // 하늘 그라디언트
-  const g = ctx.createLinearGradient(0, 0, 0, GAME_H);
-  g.addColorStop(0, "#ffe4d6");
-  g.addColorStop(0.6, "#fff5ec");
-  g.addColorStop(1, "#fdfbf7");
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, GAME_W, GAME_H);
-
-  // 태양
-  ctx.fillStyle = "rgba(255, 230, 200, 0.9)";
+function drawChapelPixel(ctx: CanvasRenderingContext2D, x: number, y: number) {
+  ctx.fillStyle = "#fff7ef";
+  ctx.fillRect(x - 32, y, 64, 48);
+  ctx.fillStyle = "#c9a6a0";
   ctx.beginPath();
-  ctx.arc(GAME_W - 60, 50, 22, 0, Math.PI * 2);
+  ctx.moveTo(x - 34, y);
+  ctx.lineTo(x + 34, y);
+  ctx.lineTo(x, y - 20);
+  ctx.closePath();
   ctx.fill();
+  // 십자가
+  ctx.fillStyle = "#8a5a5a";
+  ctx.fillRect(x - 1, y - 30, 2, 12);
+  ctx.fillRect(x - 4, y - 26, 8, 2);
+  // 문
+  ctx.fillStyle = "#6e4d2e";
+  ctx.fillRect(x - 8, y + 20, 16, 28);
+  // 창문
+  ctx.fillStyle = "#b5d9ff";
+  ctx.fillRect(x - 22, y + 10, 10, 14);
+  ctx.fillRect(x + 12, y + 10, 10, 14);
+}
 
-  // 구름 (느린 패럴랙스)
-  const cs = scroll * 0.2;
-  ctx.fillStyle = "rgba(255, 255, 255, 0.75)";
-  for (let i = 0; i < 5; i++) {
-    const seed = i * 157 + 40;
-    const baseX = ((seed - cs) % (GAME_W + 80) + GAME_W + 80) % (GAME_W + 80) - 40;
-    const cy = 28 + (i % 3) * 20;
-    ctx.beginPath();
-    ctx.arc(baseX, cy, 12, 0, Math.PI * 2);
-    ctx.arc(baseX + 12, cy + 3, 10, 0, Math.PI * 2);
-    ctx.arc(baseX - 12, cy + 3, 8, 0, Math.PI * 2);
-    ctx.fill();
+function drawNPC(ctx: CanvasRenderingContext2D, x: number, y: number, color: string) {
+  ctx.fillStyle = "rgba(0,0,0,0.2)";
+  ctx.beginPath();
+  ctx.ellipse(x, y + 12, 6, 2, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = color;
+  ctx.fillRect(x - 4, y - 2, 8, 10);
+  ctx.fillStyle = "#f5d0b5";
+  ctx.fillRect(x - 3, y - 8, 6, 6);
+  ctx.fillStyle = "#2b1e16";
+  ctx.fillRect(x - 4, y - 10, 8, 3);
+  ctx.fillStyle = "#1a1a1a";
+  ctx.fillRect(x - 3, y + 8, 2, 3);
+  ctx.fillRect(x + 1, y + 8, 2, 3);
+}
+
+// ───── Phase 4 러너 ─────
+function drawRunner(ctx: CanvasRenderingContext2D, c: DrawCtx) {
+  // 레드카펫 배경
+  ctx.fillStyle = "#e8d7b4";
+  ctx.fillRect(0, 0, VW, VH);
+  // 카펫 영역
+  const cx = VW * 0.18;
+  const cw = VW * 0.64;
+  ctx.fillStyle = "#c94a4a";
+  ctx.fillRect(cx, 0, cw, VH);
+  // 카펫 금색 트림
+  ctx.fillStyle = "#f2d37a";
+  ctx.fillRect(cx - 2, 0, 2, VH);
+  ctx.fillRect(cx + cw, 0, 2, VH);
+  // 카펫 타일 스크롤
+  ctx.fillStyle = "rgba(255,255,255,0.1)";
+  for (let y = -32 + c.runner.scroll; y < VH; y += 32) {
+    ctx.fillRect(cx, y, cw, 2);
   }
-
-  // 먼 언덕
-  const hs = scroll * 0.5;
-  ctx.fillStyle = "rgba(232, 147, 120, 0.25)";
-  for (let i = 0; i < 6; i++) {
-    const seed = i * 110;
-    const baseX = ((seed - hs) % (GAME_W + 140) + GAME_W + 140) % (GAME_W + 140) - 70;
-    ctx.beginPath();
-    ctx.arc(baseX, GROUND_Y + 15, 55, Math.PI, Math.PI * 2);
-    ctx.fill();
-  }
-
-  // 가까운 꽃/나무 실루엣
-  const ts = scroll * 0.85;
+  // 양 옆 하객 실루엣 (여러 색)
+  const palette = ["#e89378", "#c9a2d4", "#a0c7a2", "#7a9ac9", "#e2b85a"];
   for (let i = 0; i < 8; i++) {
-    const seed = i * 78 + 10;
-    const baseX = ((seed - ts) % (GAME_W + 60) + GAME_W + 60) % (GAME_W + 60) - 30;
-    // 나무
-    ctx.fillStyle = "rgba(138, 90, 79, 0.35)";
-    ctx.fillRect(baseX - 2, GROUND_Y - 18, 4, 18);
-    ctx.fillStyle = "rgba(240, 163, 163, 0.6)";
-    ctx.beginPath();
-    ctx.arc(baseX, GROUND_Y - 22, 8, 0, Math.PI * 2);
-    ctx.fill();
+    const y = ((i * 36 + c.runner.scroll * 2) % (VH + 40)) - 20;
+    drawGuestSilhouette(ctx, 18, y, palette[i % palette.length]);
+    drawGuestSilhouette(ctx, VW - 18, y, palette[(i + 2) % palette.length]);
+  }
+  // 아이템
+  for (const it of c.runner.items) {
+    const x = LANE_X[it.lane];
+    drawRunnerItem(ctx, x, it.y, it.kind);
+  }
+  // 플레이어
+  const px = LANE_X[c.runner.lane];
+  const py = VH - 46;
+  if (c.runner.invinc > 0 && Math.floor(c.runner.invinc * 10) % 2 === 0) {
+    // 블링크
+  } else {
+    drawHero(ctx, px, py, "up", c.sex, performance.now() / 1000);
+  }
+  // 상단 HUD 바
+  ctx.fillStyle = "rgba(0,0,0,0.5)";
+  ctx.fillRect(0, 0, VW, 16);
+  ctx.fillStyle = "#fff";
+  ctx.font = "10px ui-monospace";
+  ctx.fillText(`⏱${Math.ceil(c.runner.remain)}s`, 6, 11);
+  ctx.fillText(`♥${Math.max(0, c.runner.lives)}`, 60, 11);
+  ctx.fillText(`★${c.runner.score}`, 110, 11);
+  if (c.runner.invinc > 0) {
+    ctx.fillStyle = "#ffd36a";
+    ctx.fillText("INVINCIBLE", 170, 11);
   }
 }
 
-function drawGround(ctx: CanvasRenderingContext2D, scroll: number) {
-  // 지면
-  ctx.fillStyle = "#f5d4c4";
-  ctx.fillRect(0, GROUND_Y + 2, GAME_W, GAME_H - GROUND_Y - 2);
-  // 경계선
-  ctx.fillStyle = "#e89378";
-  ctx.fillRect(0, GROUND_Y + 2, GAME_W, 2);
-  // 타일 점 (스크롤 효과)
-  ctx.fillStyle = "rgba(201, 122, 98, 0.5)";
-  const step = 24;
-  const offset = scroll % step;
-  for (let x = -offset; x < GAME_W; x += step) {
-    ctx.fillRect(x, GROUND_Y + 10, 6, 2);
-    ctx.fillRect(x + 12, GROUND_Y + 22, 4, 2);
+function drawGuestSilhouette(ctx: CanvasRenderingContext2D, x: number, y: number, color: string) {
+  ctx.fillStyle = color;
+  ctx.fillRect(x - 5, y, 10, 14);
+  ctx.fillStyle = "#f5d0b5";
+  ctx.fillRect(x - 4, y - 6, 8, 6);
+  ctx.fillStyle = "#2b1e16";
+  ctx.fillRect(x - 5, y - 8, 10, 3);
+}
+
+function drawRunnerItem(ctx: CanvasRenderingContext2D, x: number, y: number, kind: RunnerItem["kind"]) {
+  switch (kind) {
+    case "ring":
+      ctx.strokeStyle = "#f2d37a";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(x, y, 7, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = "#e7f0ff";
+      ctx.beginPath();
+      ctx.arc(x, y - 6, 2, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    case "heart":
+      drawHeart(ctx, x, y, 5, "#e94a6a");
+      break;
+    case "bouquet":
+      ctx.fillStyle = "#6e9a6a";
+      ctx.fillRect(x - 1, y + 2, 2, 10);
+      ctx.fillStyle = "#ffb5c2";
+      ctx.beginPath(); ctx.arc(x - 4, y, 3, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(x + 4, y, 3, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(x, y - 3, 3, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#ffd36a";
+      ctx.beginPath(); ctx.arc(x, y, 2, 0, Math.PI * 2); ctx.fill();
+      break;
+    case "champagne":
+      ctx.fillStyle = "#f2d37a";
+      ctx.beginPath();
+      ctx.moveTo(x - 4, y - 8);
+      ctx.lineTo(x + 4, y - 8);
+      ctx.lineTo(x + 2, y + 4);
+      ctx.lineTo(x - 2, y + 4);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillRect(x - 1, y + 4, 2, 4);
+      ctx.fillRect(x - 3, y + 8, 6, 1);
+      break;
+    case "envelope":
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(x - 7, y - 5, 14, 10);
+      ctx.strokeStyle = "#8a5a5a";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(x - 7, y - 5, 14, 10);
+      ctx.beginPath();
+      ctx.moveTo(x - 7, y - 5);
+      ctx.lineTo(x, y + 1);
+      ctx.lineTo(x + 7, y - 5);
+      ctx.stroke();
+      break;
+    case "cake":
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(x - 9, y, 18, 10);
+      ctx.fillStyle = "#f5c0c9";
+      ctx.fillRect(x - 6, y - 5, 12, 5);
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(x - 3, y - 9, 6, 4);
+      ctx.fillStyle = "#f2d37a";
+      ctx.fillRect(x - 1, y - 12, 2, 3);
+      break;
+    case "kid":
+      ctx.fillStyle = "#ffd36a";
+      ctx.fillRect(x - 4, y - 2, 8, 9);
+      ctx.fillStyle = "#f5d0b5";
+      ctx.fillRect(x - 3, y - 8, 6, 6);
+      ctx.fillStyle = "#5a3a1a";
+      ctx.fillRect(x - 4, y - 10, 8, 3);
+      break;
   }
 }
 
-function drawEntity(ctx: CanvasRenderingContext2D, e: Ent) {
-  if (e.collected) return;
-  const x = e.x;
-  const y = e.y;
-
-  if (e.kind === "ring") {
-    // 금반지 + 다이아
-    ctx.strokeStyle = "#e89378";
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.arc(x, y, 9, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.fillStyle = "#ffffff";
-    ctx.beginPath();
-    ctx.moveTo(x, y - 14);
-    ctx.lineTo(x + 4, y - 9);
-    ctx.lineTo(x, y - 4);
-    ctx.lineTo(x - 4, y - 9);
-    ctx.closePath();
-    ctx.fill();
-    ctx.strokeStyle = "#d4b876";
-    ctx.lineWidth = 1;
-    ctx.stroke();
-  } else if (e.kind === "heart") {
-    drawHeart(ctx, x, y, 10, "#f0a3a3");
-  } else if (e.kind === "champagne") {
-    ctx.fillStyle = "#d4b876";
-    ctx.fillRect(x - 4, y - 12, 8, 18);
-    ctx.fillStyle = "#8a5a4f";
-    ctx.fillRect(x - 3, y - 16, 6, 4);
+// ───── Ending ─────
+function drawEnding(ctx: CanvasRenderingContext2D, c: DrawCtx, cleared: boolean) {
+  ctx.fillStyle = cleared ? "#fff3ec" : "#2d1b2c";
+  ctx.fillRect(0, 0, VW, VH);
+  if (cleared) {
+    drawChapelPixel(ctx, VW / 2, VH / 2 - 40);
+    ctx.fillStyle = "#3d2b28";
+    ctx.font = "bold 16px ui-sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("결혼했다!", VW / 2, VH / 2 + 70);
+    ctx.font = "10px ui-monospace";
+    ctx.fillText(`${c.nickname || "하객"} 점수 ${c.runner.score}`, VW / 2, VH / 2 + 90);
+    ctx.textAlign = "left";
+  } else {
     ctx.fillStyle = "#fff";
-    ctx.fillRect(x - 4, y - 6, 8, 3);
-    ctx.fillStyle = "#e89378";
-    ctx.beginPath();
-    ctx.arc(x, y - 18, 2.5, 0, Math.PI * 2);
-    ctx.fill();
-  } else if (e.kind === "envelope") {
-    // 축의금 봉투 (바닥 장애물)
-    ctx.fillStyle = "#fffdf8";
-    ctx.fillRect(x - 14, y - 18, 28, 18);
-    ctx.strokeStyle = "#e89378";
-    ctx.lineWidth = 1.5;
-    ctx.strokeRect(x - 14, y - 18, 28, 18);
-    ctx.beginPath();
-    ctx.moveTo(x - 14, y - 18);
-    ctx.lineTo(x, y - 6);
-    ctx.lineTo(x + 14, y - 18);
-    ctx.stroke();
-    drawHeart(ctx, x, y - 10, 3.5, "#e89378");
-  } else if (e.kind === "bench") {
-    // 교회 벤치 (낮은 장애물)
-    ctx.fillStyle = "#8a5a4f";
-    ctx.fillRect(x - 18, y - 16, 36, 5);
-    ctx.fillRect(x - 16, y - 11, 2, 11);
-    ctx.fillRect(x + 14, y - 11, 2, 11);
-  } else if (e.kind === "cake") {
-    // 3단 웨딩 케이크 (큰 장애물 — 높이 점프 필요)
-    ctx.fillStyle = "#fffdf8";
-    ctx.fillRect(x - 16, y - 12, 32, 12);
-    ctx.fillRect(x - 12, y - 22, 24, 10);
-    ctx.fillRect(x - 8, y - 32, 16, 10);
-    ctx.fillStyle = "#f0a3a3";
-    ctx.fillRect(x - 16, y - 8, 32, 2);
-    ctx.fillRect(x - 12, y - 18, 24, 2);
-    ctx.fillRect(x - 8, y - 28, 16, 2);
-    // 장식
-    ctx.fillStyle = "#e89378";
-    ctx.beginPath();
-    ctx.arc(x, y - 36, 3, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.font = "bold 16px ui-sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("GAME OVER", VW / 2, VH / 2 - 10);
+    ctx.font = "10px ui-monospace";
+    ctx.fillText("다시 도전!", VW / 2, VH / 2 + 10);
+    ctx.textAlign = "left";
   }
 }
 
-function GameOverlay({
-  title,
-  description,
-  btn,
-  onClick,
-}: {
-  title: string;
-  description: string;
-  btn: string;
-  onClick: () => void;
-}) {
-  const handle = (e: React.SyntheticEvent) => {
-    e.stopPropagation();
-    e.preventDefault();
-    onClick();
-  };
-  return (
-    <div
-      className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-4 bg-[color:var(--color-blush)]/90 backdrop-blur-sm text-center px-6"
-      onTouchStart={(e) => e.stopPropagation()}
-      onTouchEnd={(e) => e.stopPropagation()}
-      style={{ touchAction: "auto" }}
-    >
-      <p className="text-lg text-[color:var(--color-charcoal)]">{title}</p>
-      <p className="text-[13px] leading-relaxed text-[color:var(--color-charcoal)]/75 whitespace-pre-line">
-        {description}
-      </p>
-      <button
-        type="button"
-        onClick={handle}
-        onTouchEnd={handle}
-        className="rounded-full bg-[color:var(--color-rose-deep)] px-8 py-3 text-[13px] tracking-[0.3em] text-white shadow-md active:scale-95"
-      >
-        {btn}
-      </button>
-    </div>
-  );
-}
-
-function LegendDot({ color, label }: { color: string; label: string }) {
-  return (
-    <div className="flex flex-col items-center gap-1">
-      <span className="inline-block h-3 w-3 rounded-full" style={{ background: color }} />
-      <span>{label}</span>
-    </div>
-  );
-}
-
+// 하트 유틸 (기존 유지)
 function drawHeart(
   ctx: CanvasRenderingContext2D,
   cx: number,
@@ -1228,6 +1593,7 @@ function drawHeart(
   ctx.bezierCurveTo(cx - s * 0.9, cy - s * 0.9, cx - s * 1.2, cy + s * 0.2, cx, cy + s * 0.6);
   ctx.fill();
 }
+
 
 function Share() {
   const share = async () => {
@@ -1277,7 +1643,7 @@ export default function Home() {
       <Calendar />
       <Gallery />
       <Location />
-      <MiniGame />
+      <WeddingAdventure />
       <Account />
       <Guestbook />
       <Share />
