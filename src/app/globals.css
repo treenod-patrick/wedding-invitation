@@ -42,6 +42,12 @@
   --font-active: var(--font-active);
 }
 
+html {
+  /* 한글은 어절 단위로 개행되도록 전역 기본값 */
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
 body {
   background: #f7f4f1;
   color: var(--charcoal);
@@ -83,23 +89,43 @@ body {
   }
 }
 
+/* 영문 소형 라벨 — 모바일에서 자간이 과해 2~3줄로 꺾이던 문제를 clamp + nowrap으로 고정 */
 .eyebrow {
-  font-size: 20px;
-  letter-spacing: 0.35em;
+  font-size: clamp(11px, 3.2vw, 15px);
+  letter-spacing: clamp(0.18em, 0.9vw, 0.32em);
   text-transform: uppercase;
   color: var(--rose-deep);
+  white-space: nowrap;
+  display: inline-block;
 }
 
 .section-title {
   font-family: var(--font-active), "Gowun Batang", serif;
-  font-size: 1.6rem;
+  font-size: clamp(1.25rem, 5.2vw, 1.6rem);
   color: var(--charcoal);
+  word-break: keep-all;
+  line-height: 1.45;
+}
+
+/* 영문/숫자 라벨(예: D-DAY, SCROLL, NAVER MAP) — 개행 금지 */
+.label-caps {
+  white-space: nowrap;
+  letter-spacing: clamp(0.2em, 0.9vw, 0.4em);
+  font-size: clamp(10px, 2.8vw, 14px);
+}
+
+/* 본문 단락 — 한글 어절 단위 + 모바일 행간 유지 */
+.body-kr {
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  line-height: 1.9;
+  font-size: clamp(13px, 3.6vw, 15px);
 }
 
 /* 콘텐츠 카드 — 색이 있는 박스 */
 .content-card {
   border-radius: 1.25rem;
-  padding: 2.25rem 1.5rem;
+  padding: clamp(1.5rem, 6vw, 2.25rem) clamp(1rem, 4vw, 1.5rem);
   box-shadow: 0 6px 30px rgba(228, 169, 175, 0.08);
 }
 
@@ -107,7 +133,14 @@ body {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
+@keyframes fade-out {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(-6px); }
+}
 
 .fade-in {
   animation: fade-in 0.8s ease-out both;
+}
+.fade-out {
+  animation: fade-out 0.6s ease-in both;
 }

@@ -80,7 +80,7 @@ function FontToggle({ value, onChange }: { value: string; onChange: (k: string) 
     <div className="fixed bottom-5 right-5 z-50">
       {open && (
         <div className="mb-2 w-64 max-h-80 overflow-y-auto rounded-2xl bg-white shadow-2xl border border-[color:var(--color-line)] p-2">
-          <div className="text-[20px] tracking-[0.3em] uppercase text-[color:var(--color-rose-deep)] px-3 py-2 border-b border-[color:var(--color-line)]">Font</div>
+          <div className="text-[12px] tracking-[0.28em] uppercase text-[color:var(--color-rose-deep)] px-3 py-2 border-b border-[color:var(--color-line)]">Font</div>
           {FONTS.map((f) => (
             <button
               key={f.key}
@@ -90,8 +90,8 @@ function FontToggle({ value, onChange }: { value: string; onChange: (k: string) 
               }`}
               style={{ fontFamily: f.cssVar }}
             >
-              <span className="text-base text-[color:var(--color-charcoal)]">우리 결혼합니다</span>
-              <span className="text-[20px] text-[color:var(--color-mute)] ml-2">{f.category}</span>
+              <span className="text-[15px] text-[color:var(--color-charcoal)]">우리 결혼합니다</span>
+              <span className="text-[11px] text-[color:var(--color-mute)] ml-2 whitespace-nowrap">{f.category}</span>
             </button>
           ))}
         </div>
@@ -144,14 +144,14 @@ function Hero() {
       </svg>
       <div className="fade-in">
         <p className="eyebrow mb-6">We Invite You</p>
-        <h1 className="text-[2.4rem] leading-tight text-[color:var(--color-charcoal)]">{data.groom.nameEn}</h1>
+        <h1 className="text-[clamp(1.9rem,8.5vw,2.6rem)] leading-tight text-[color:var(--color-charcoal)] whitespace-nowrap">{data.groom.nameEn}</h1>
         <p className="my-3 italic text-base text-[color:var(--color-rose-deep)]">&amp;</p>
-        <h1 className="text-[2.4rem] leading-tight text-[color:var(--color-charcoal)]">{data.bride.nameEn}</h1>
+        <h1 className="text-[clamp(1.9rem,8.5vw,2.6rem)] leading-tight text-[color:var(--color-charcoal)] whitespace-nowrap">{data.bride.nameEn}</h1>
         <FlowerDivider />
-        <p className="mt-2 text-sm tracking-[0.25em] text-[color:var(--color-mute)]">2026. 11. 15 · 일</p>
-        <p className="mt-2 text-xs tracking-[0.2em] text-[color:var(--color-mute)]">{data.venue.name}</p>
+        <p className="mt-2 text-[clamp(11px,3.4vw,14px)] tracking-[0.22em] text-[color:var(--color-mute)] whitespace-nowrap">2026. 11. 15 · 일</p>
+        <p className="mt-2 text-[clamp(10px,3vw,12px)] tracking-[0.18em] text-[color:var(--color-mute)] whitespace-nowrap">{data.venue.name}</p>
       </div>
-      <div className="absolute bottom-8 text-[20px] tracking-[0.4em] text-[color:var(--color-mute)] animate-pulse">SCROLL</div>
+      <div className="absolute bottom-8 label-caps text-[color:var(--color-mute)] animate-pulse">SCROLL</div>
     </section>
   );
 }
@@ -190,14 +190,14 @@ function Couple() {
   const Person = ({ role, p }: { role: string; p: typeof data.groom }) => (
     <div className="text-center">
       <p className="eyebrow">{role}</p>
-      <p className="mt-3 text-2xl text-[color:var(--color-charcoal)]">{p.nameEn}</p>
-      <p className="mt-1 text-base text-[color:var(--color-charcoal)]">{p.name}</p>
-      <p className="mt-2 text-xs text-[color:var(--color-mute)]">
+      <p className="mt-3 text-[clamp(1.15rem,5vw,1.5rem)] text-[color:var(--color-charcoal)] whitespace-nowrap">{p.nameEn}</p>
+      <p className="mt-1 text-[clamp(14px,4vw,16px)] text-[color:var(--color-charcoal)]">{p.name}</p>
+      <p className="mt-2 text-[11px] text-[color:var(--color-mute)] whitespace-nowrap">
         {p.father} · {p.mother}
       </p>
       <a
         href={`tel:${p.phone}`}
-        className="mt-3 inline-block text-[18px] tracking-widest text-[color:var(--color-rose-deep)] border border-[color:var(--color-rose)]/40 rounded-full px-3 py-1"
+        className="mt-3 inline-block label-caps text-[color:var(--color-rose-deep)] border border-[color:var(--color-rose)]/40 rounded-full px-3 py-1"
       >
         CALL
       </a>
@@ -231,8 +231,8 @@ function Countdown() {
         <div className="grid grid-cols-4 gap-2 text-center">
           {items.map((i) => (
             <div key={i.l} className="py-5">
-              <div className="text-[1.6rem] text-[color:var(--color-rose-deep)] tabular-nums">{String(i.v).padStart(2, "0")}</div>
-              <div className="mt-1 text-[18px] tracking-[0.25em] text-[color:var(--color-mute)]">{i.l}</div>
+              <div className="text-[clamp(1.4rem,6vw,1.7rem)] text-[color:var(--color-rose-deep)] tabular-nums">{String(i.v).padStart(2, "0")}</div>
+              <div className="mt-1 label-caps text-[color:var(--color-mute)]">{i.l}</div>
             </div>
           ))}
         </div>
@@ -265,10 +265,10 @@ function Calendar() {
       <Card>
         <SectionHead kicker="When" title="예식일" />
         <div className="mx-auto max-w-xs p-5">
-          <p className="text-center tracking-[0.2em] text-[color:var(--color-rose-deep)]">
+          <p className="text-center tracking-[0.2em] text-[color:var(--color-rose-deep)] text-[clamp(13px,3.8vw,16px)] whitespace-nowrap">
             {monthName} · {year}
           </p>
-          <div className="mt-4 grid grid-cols-7 text-center text-[22px] tracking-widest text-[color:var(--color-mute)]">
+          <div className="mt-4 grid grid-cols-7 text-center text-[clamp(13px,3.8vw,18px)] tracking-wider text-[color:var(--color-mute)]">
             {["S", "M", "T", "W", "T", "F", "S"].map((l, i) => (
               <div key={i} className={`py-2 ${i === 0 ? "text-[color:var(--color-rose-deep)]" : ""}`}>{l}</div>
             ))}
@@ -305,7 +305,7 @@ function Gallery() {
           </div>
         ))}
       </div>
-      <p className="mt-4 text-center text-[18px] text-[color:var(--color-mute)]">사진 자리 — 마스터 사진 받으면 교체</p>
+      <p className="mt-4 text-center text-[12px] text-[color:var(--color-mute)]">사진 자리 — 마스터 사진 받으면 교체</p>
     </section>
   );
 }
@@ -377,38 +377,38 @@ function Location() {
             </div>
             <div className="pointer-events-none absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-white/95 px-3 py-1.5 shadow-sm">
               <span className="inline-block h-2 w-2 rounded-full bg-[#03C75A]" />
-              <span className="text-[13px] font-semibold tracking-wider text-[color:var(--color-charcoal)]">NAVER MAP</span>
+              <span className="text-[11px] font-semibold tracking-wider text-[color:var(--color-charcoal)] whitespace-nowrap">NAVER MAP</span>
             </div>
-            <div className="pointer-events-none absolute left-1/2 top-[62%] -translate-x-1/2 whitespace-nowrap rounded-md bg-white/95 px-3 py-1 text-[12px] font-medium tracking-wider text-[color:var(--color-charcoal)] shadow-sm">
+            <div className="pointer-events-none absolute left-1/2 top-[62%] -translate-x-1/2 whitespace-nowrap rounded-md bg-white/95 px-3 py-1 text-[11px] font-medium tracking-wide text-[color:var(--color-charcoal)] shadow-sm">
               {data.venue.name}
             </div>
-            <div className="pointer-events-none absolute bottom-3 right-3 rounded-full bg-[color:var(--color-rose-deep)] px-3 py-1.5 text-[12px] tracking-widest text-white transition group-hover:bg-[color:var(--color-charcoal)]">
+            <div className="pointer-events-none absolute bottom-3 right-3 rounded-full bg-[color:var(--color-rose-deep)] px-3 py-1.5 text-[11px] tracking-wider text-white whitespace-nowrap transition group-hover:bg-[color:var(--color-charcoal)]">
               네이버 지도 열기 →
             </div>
           </div>
         </a>
         <div className="mt-5 text-center">
-          <p className="text-xl tracking-wide text-[color:var(--color-charcoal)]">{data.venue.name}</p>
-          <p className="mt-2 text-[13px] text-[color:var(--color-mute)]">{data.venue.address}</p>
-          <p className="text-[13px] text-[color:var(--color-mute)]">{data.venue.phone}</p>
+          <p className="text-[clamp(1.05rem,4.6vw,1.35rem)] tracking-wide text-[color:var(--color-charcoal)]">{data.venue.name}</p>
+          <p className="mt-2 text-[13px] text-[color:var(--color-mute)] body-kr leading-relaxed">{data.venue.address}</p>
+          <p className="text-[13px] text-[color:var(--color-mute)] whitespace-nowrap">{data.venue.phone}</p>
           <button
             onClick={copyAddress}
-            className="mt-3 rounded-full border border-[color:var(--color-rose)]/40 px-4 py-1.5 text-[18px] tracking-widest text-[color:var(--color-rose-deep)]"
+            className="mt-3 rounded-full border border-[color:var(--color-rose)]/40 px-4 py-1.5 text-[12px] tracking-wider text-[color:var(--color-rose-deep)] whitespace-nowrap"
           >
             주소 복사
           </button>
         </div>
-        <div className="mt-7 space-y-3 p-5 text-[13px] text-[color:var(--color-charcoal)]/85">
+        <div className="mt-7 space-y-3 p-5 text-[13px] text-[color:var(--color-charcoal)]/85 body-kr">
           <div className="flex gap-3">
-            <span className="min-w-[56px] text-[color:var(--color-rose-deep)] text-[14px]">지하철</span>
+            <span className="min-w-[48px] text-[color:var(--color-rose-deep)] text-[13px] whitespace-nowrap">지하철</span>
             <span>{data.venue.subway}</span>
           </div>
           <div className="flex gap-3">
-            <span className="min-w-[56px] text-[color:var(--color-rose-deep)] text-[14px]">버스</span>
+            <span className="min-w-[48px] text-[color:var(--color-rose-deep)] text-[13px] whitespace-nowrap">버스</span>
             <span>{data.venue.bus}</span>
           </div>
           <div className="flex gap-3">
-            <span className="min-w-[56px] text-[color:var(--color-rose-deep)] text-[14px]">주차</span>
+            <span className="min-w-[48px] text-[color:var(--color-rose-deep)] text-[13px] whitespace-nowrap">주차</span>
             <span>
               {data.venue.parking}
               <br />
@@ -443,7 +443,7 @@ function Account() {
             <span className="text-[color:var(--color-charcoal)]">{account}</span>
             <button
               onClick={() => navigator.clipboard?.writeText(account)}
-              className="text-[18px] tracking-widest text-[color:var(--color-rose-deep)] border border-[color:var(--color-rose)]/40 rounded-full px-3 py-1"
+              className="text-[12px] tracking-wider text-[color:var(--color-rose-deep)] border border-[color:var(--color-rose)]/40 rounded-full px-3 py-1 whitespace-nowrap"
             >
               복사
             </button>
@@ -456,7 +456,7 @@ function Account() {
     <section className="px-5 py-10 bg-white">
       <Card>
         <SectionHead kicker="Heart" title="마음 전하실 곳" />
-        <p className="mb-8 text-center text-[13px] leading-loose text-[color:var(--color-mute)]">
+        <p className="mb-8 text-center text-[13px] leading-loose text-[color:var(--color-mute)] body-kr">
           참석이 어려우신 분들을 위해
           <br />
           조심스레 계좌번호를 안내드립니다.
@@ -492,7 +492,7 @@ function Guestbook() {
     <section className="px-5 py-10 bg-white">
       <Card>
         <SectionHead kicker="Guestbook" title="방명록" />
-        <p className="mb-6 text-center text-[13px] text-[color:var(--color-mute)] leading-loose">
+        <p className="mb-6 text-center text-[13px] text-[color:var(--color-mute)] leading-loose body-kr">
           따뜻한 마음 한 줄 남겨주시면
           <br />
           오래도록 간직하겠습니다.
@@ -506,19 +506,19 @@ function Guestbook() {
             >
               <div className="absolute -top-2 left-5 inline-flex items-center gap-1.5 bg-[color:var(--color-blush)] rounded-full px-3 py-0.5">
                 <span className="h-1.5 w-1.5 rounded-full bg-[color:var(--color-rose-deep)]" />
-                <span className="text-[11px] tracking-widest text-[color:var(--color-rose-deep)]">{g.name}</span>
+                <span className="text-[11px] tracking-widest text-[color:var(--color-rose-deep)] whitespace-nowrap">{g.name}</span>
               </div>
-              <p className="mt-2 text-[14px] leading-[2] text-[color:var(--color-charcoal)]/85 whitespace-pre-line">
+              <p className="mt-2 text-[14px] leading-[2] text-[color:var(--color-charcoal)]/85 whitespace-pre-line body-kr">
                 {g.msg}
               </p>
-              <p className="mt-3 text-right text-[11px] tracking-widest text-[color:var(--color-mute)]">{fmt(g.ts)}</p>
+              <p className="mt-3 text-right text-[11px] tracking-widest text-[color:var(--color-mute)] whitespace-nowrap">{fmt(g.ts)}</p>
             </div>
           ))}
         </div>
 
         <button
           onClick={() => setOpen(true)}
-          className="mt-7 mx-auto block rounded-full border border-[color:var(--color-rose)]/40 px-6 py-2.5 text-[13px] tracking-[0.25em] text-[color:var(--color-rose-deep)]"
+          className="mt-7 mx-auto block rounded-full border border-[color:var(--color-rose)]/40 px-6 py-2.5 text-[12px] tracking-[0.22em] text-[color:var(--color-rose-deep)] whitespace-nowrap"
         >
           + 메시지 남기기
         </button>
@@ -817,7 +817,7 @@ function playBlip(
   osc.stop(when + dur + 0.02);
 }
 
-function WeddingAdventure() {
+function WeddingAdventure({ onComplete }: { onComplete?: () => void } = {}) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [phase, setPhase] = useState<Phase>("intro");
   const phaseRef = useRef<Phase>("intro");
@@ -889,6 +889,14 @@ function WeddingAdventure() {
       setMutedState(m);
     } catch {}
   }, []);
+
+  // cleared/over 진입 시 3초 뒤 onComplete 호출 → 청첩장 자동 전환
+  useEffect(() => {
+    if (!onComplete) return;
+    if (phase !== "cleared" && phase !== "over") return;
+    const t = window.setTimeout(() => onComplete(), 3200);
+    return () => window.clearTimeout(t);
+  }, [phase, onComplete]);
 
   const setPhaseBoth = useCallback((p: Phase) => {
     phaseRef.current = p;
@@ -1272,10 +1280,10 @@ function WeddingAdventure() {
   }, [advanceDialog, jump, slide, setPhaseBoth, startRunner]);
 
   return (
-    <section className="px-5 pt-6 pb-14">
-      <SectionHead kicker="Wedding Quest" title="웨딩 어드벤처" />
+    <section className="px-5 pt-3 pb-10">
+      <SectionHead kicker="Wedding Quest" title="웨딩 러너" />
       <Card>
-        <div className="px-4 py-6 bg-[color:var(--color-blush)] rounded-2xl">
+        <div className="px-2 py-4 rounded-2xl">
           <div
             className="mx-auto relative select-none"
             style={{ maxWidth: 360 }}
@@ -1821,65 +1829,37 @@ function drawNPC(ctx: CanvasRenderingContext2D, x: number, y: number, color: str
   ctx.fillRect(x + 1, y + 8, 2, 3);
 }
 
-// ───── Phase 4 러너 — 횡스크롤 엔드리스 ─────
+// ───── Phase 4 러너 — 횡스크롤 엔드리스 (Dino-style 미니멀 배경) ─────
 function drawRunner(ctx: CanvasRenderingContext2D, c: DrawCtx) {
   const t = performance.now() / 1000;
   const scroll = c.runner.scroll;
   const speed = c.runner.worldSpeed;
 
-  // 하늘 그라디언트
-  const sky = ctx.createLinearGradient(0, 0, 0, GROUND_Y);
-  sky.addColorStop(0, "#fad9c8");
-  sky.addColorStop(0.55, "#f7c4be");
-  sky.addColorStop(1, "#f4b4a8");
-  ctx.fillStyle = sky;
-  ctx.fillRect(0, 0, VW, GROUND_Y);
+  // 깔끔한 상아빛 배경 (공룡 런 무드)
+  ctx.fillStyle = "#fbf7f4";
+  ctx.fillRect(0, 0, VW, VH);
 
-  // 먼 구름 (느린 패럴랙스)
-  const cloudOff = (t * speed * 0.05) % 120;
-  ctx.fillStyle = "rgba(255,255,255,0.8)";
-  for (let i = 0; i < 5; i++) {
-    const cx = ((i * 90 - cloudOff) % (VW + 60)) - 30;
-    const cy = 22 + (i % 2) * 16;
-    ctx.beginPath();
-    ctx.arc(cx, cy, 8, 0, Math.PI * 2);
-    ctx.arc(cx + 8, cy - 3, 7, 0, Math.PI * 2);
-    ctx.arc(cx + 16, cy, 7, 0, Math.PI * 2);
-    ctx.fill();
+  // 구름 — 단순 도트 구름 (엷게)
+  const cloudOff = (t * 14) % 120;
+  ctx.fillStyle = "#e8d9d6";
+  for (let i = 0; i < 3; i++) {
+    const cx = ((i * 110 - cloudOff) % (VW + 80)) - 40;
+    const cy = 32 + (i % 2) * 14;
+    ctx.fillRect(cx, cy, 10, 3);
+    ctx.fillRect(cx + 4, cy - 3, 10, 3);
+    ctx.fillRect(cx + 10, cy + 3, 8, 3);
   }
 
-  // 먼 언덕 (중간 패럴랙스)
-  const hillOff = (t * speed * 0.15) % 160;
-  ctx.fillStyle = "#d18a8f";
-  for (let i = -1; i < 4; i++) {
-    const hx = i * 120 - hillOff;
-    ctx.beginPath();
-    ctx.moveTo(hx, GROUND_Y);
-    ctx.quadraticCurveTo(hx + 60, GROUND_Y - 50, hx + 120, GROUND_Y);
-    ctx.closePath();
-    ctx.fill();
+  // 지면 — 공룡 런처럼 단일 라인 + 점선 포인트
+  ctx.fillStyle = "#3d2b28";
+  ctx.fillRect(0, GROUND_Y + 1, VW, 1);
+  // 지면 밑 모래 포인트(스크롤)
+  ctx.fillStyle = "#8a5a5a";
+  for (let x = (-scroll | 0) % 18; x < VW; x += 18) {
+    ctx.fillRect(x, GROUND_Y + 4, 3, 1);
   }
-
-  // 가까운 장식 나무 (빠른 패럴랙스)
-  const treeOff = (t * speed * 0.6) % 80;
-  for (let i = -1; i < 6; i++) {
-    const tx = i * 72 - treeOff + 30;
-    drawPineTree(ctx, tx, GROUND_Y - 2);
-  }
-
-  // 지면 (레드카펫 감성)
-  ctx.fillStyle = "#8a3d3d";
-  ctx.fillRect(0, GROUND_Y, VW, VH - GROUND_Y);
-  ctx.fillStyle = "#6e2f2f";
-  ctx.fillRect(0, GROUND_Y, VW, 3);
-  // 지면 스크롤 띠 (플레이어 달리는 느낌)
-  ctx.fillStyle = "#f2d37a";
-  for (let x = -scroll; x < VW; x += 64) {
-    ctx.fillRect(x, GROUND_Y + 6, 32, 2);
-  }
-  ctx.fillStyle = "rgba(0,0,0,0.15)";
-  for (let x = -scroll / 2; x < VW; x += 32) {
-    ctx.fillRect(x, GROUND_Y + 14, 16, 1);
+  for (let x = ((-scroll / 2) | 0) % 28; x < VW; x += 28) {
+    ctx.fillRect(x, GROUND_Y + 8, 2, 1);
   }
 
   // 장애물 + 아이템
@@ -1907,26 +1887,25 @@ function drawRunner(ctx: CanvasRenderingContext2D, c: DrawCtx) {
     drawRunnerHero(ctx, PLAYER_X, c.runner.playerY, c.sex, c.runner.playerState, t, false);
   }
 
-  // 상단 HUD 바
-  ctx.fillStyle = "rgba(0,0,0,0.55)";
-  ctx.fillRect(0, 0, VW, 16);
-  ctx.fillStyle = "#fff";
-  ctx.font = "10px ui-monospace";
-  ctx.fillText(`⏱${Math.ceil(c.runner.remain)}s`, 6, 11);
-  ctx.fillText(`♥${Math.max(0, c.runner.lives)}`, 58, 11);
-  ctx.fillText(`★${c.runner.score}`, 106, 11);
-  ctx.fillText(`v${Math.round(speed)}`, 168, 11);
+  // 상단 HUD — 공룡 런 무드: 배경 투명, 모노스페이스 텍스트만
+  ctx.fillStyle = "#3d2b28";
+  ctx.font = "bold 10px ui-monospace";
+  ctx.fillText(`⏱ ${Math.ceil(c.runner.remain)}`, 6, 14);
+  ctx.fillText(`HI ${String(c.runner.score).padStart(5, "0")}`, VW - 72, 14);
+  ctx.fillStyle = "#8a3d3d";
+  ctx.fillText(`♥${Math.max(0, c.runner.lives)}`, 60, 14);
+  ctx.fillText(`v${Math.round(speed)}`, 100, 14);
   if (c.runner.invinc > 0) {
-    ctx.fillStyle = "#ffd36a";
-    ctx.fillText("INVINCIBLE", 208, 11);
+    ctx.fillStyle = "#c98a2a";
+    ctx.fillText("★", 138, 14);
   }
-  // 파트너 거리 게이지 (위험 표시)
-  const gaugeW = 80;
+  // 파트너 거리 게이지 — 가늘게
+  const gaugeW = 60;
   const ratio = Math.max(0, Math.min(1, c.runner.partnerGap / PARTNER_GAP_MAX));
-  ctx.fillStyle = "rgba(255,255,255,0.25)";
-  ctx.fillRect(VW - gaugeW - 6, 4, gaugeW, 8);
-  ctx.fillStyle = ratio < 0.3 ? "#ff6a6a" : ratio < 0.6 ? "#ffd36a" : "#8be38b";
-  ctx.fillRect(VW - gaugeW - 6, 4, gaugeW * ratio, 8);
+  ctx.fillStyle = "#e8d9d6";
+  ctx.fillRect(VW - gaugeW - 6, 22, gaugeW, 3);
+  ctx.fillStyle = ratio < 0.3 ? "#c94a4a" : ratio < 0.6 ? "#c98a2a" : "#6e9a6a";
+  ctx.fillRect(VW - gaugeW - 6, 22, gaugeW * ratio, 3);
 }
 
 // ───── 러너 전용 히어로 (옆모습 + 슬라이딩 대응) ─────
@@ -2041,33 +2020,6 @@ function drawRunnerHero(
     }
   }
   ctx.restore();
-}
-
-function drawPineTree(ctx: CanvasRenderingContext2D, x: number, baseY: number) {
-  ctx.fillStyle = "#5a3a1a";
-  ctx.fillRect(x - 1, baseY - 8, 2, 8);
-  ctx.fillStyle = "#4f7a4b";
-  ctx.beginPath();
-  ctx.moveTo(x - 8, baseY - 8);
-  ctx.lineTo(x + 8, baseY - 8);
-  ctx.lineTo(x, baseY - 20);
-  ctx.closePath();
-  ctx.fill();
-  ctx.beginPath();
-  ctx.moveTo(x - 6, baseY - 14);
-  ctx.lineTo(x + 6, baseY - 14);
-  ctx.lineTo(x, baseY - 24);
-  ctx.closePath();
-  ctx.fill();
-}
-
-function drawGuestSilhouette(ctx: CanvasRenderingContext2D, x: number, y: number, color: string) {
-  ctx.fillStyle = color;
-  ctx.fillRect(x - 5, y, 10, 14);
-  ctx.fillStyle = "#f5d0b5";
-  ctx.fillRect(x - 4, y - 6, 8, 6);
-  ctx.fillStyle = "#2b1e16";
-  ctx.fillRect(x - 5, y - 8, 10, 3);
 }
 
 function drawRunnerItem(ctx: CanvasRenderingContext2D, x: number, y: number, kind: RunnerKind, t: number) {
@@ -2321,40 +2273,134 @@ function Share() {
       <FlowerDivider />
       <div className="text-center">
         <p className="eyebrow">Thank You</p>
-        <p className="mt-4 text-2xl text-[color:var(--color-charcoal)]">
+        <p className="mt-4 text-[clamp(1.2rem,5.4vw,1.6rem)] text-[color:var(--color-charcoal)] whitespace-nowrap">
           {data.groom.nameEn} &amp; {data.bride.nameEn}
         </p>
         <button
           onClick={share}
-          className="mx-auto mt-8 block rounded-full bg-[color:var(--color-rose-deep)] px-7 py-3 text-[12px] tracking-[0.3em] text-white"
+          className="mx-auto mt-8 block rounded-full bg-[color:var(--color-rose-deep)] px-7 py-3 text-[12px] tracking-[0.28em] text-white whitespace-nowrap"
         >
           SHARE
         </button>
-        <p className="mt-10 text-[18px] tracking-[0.3em] text-[color:var(--color-mute)]">MADE WITH LOVE</p>
+        <p className="mt-10 label-caps text-[color:var(--color-mute)]">MADE WITH LOVE</p>
       </div>
     </section>
   );
 }
 
+// ─── 랜딩 ───
+// 첫 진입 시 청첩장/게임 분기를 선택하는 단순한 표지화면
+function Landing({ onPickInvitation, onPickGame }: { onPickInvitation: () => void; onPickGame: () => void }) {
+  return (
+    <section className="relative flex min-h-[100svh] flex-col items-center justify-center overflow-hidden bg-gradient-to-b from-[color:var(--color-blush)] via-white to-white px-6 text-center">
+      <div className="fade-in flex w-full max-w-sm flex-col items-center">
+        <p className="eyebrow mb-4">Wedding Day</p>
+        <h1 className="text-[clamp(1.7rem,7.6vw,2.2rem)] leading-tight text-[color:var(--color-charcoal)] whitespace-nowrap">
+          {data.groom.nameEn} &amp; {data.bride.nameEn}
+        </h1>
+        <p className="mt-3 text-[clamp(13px,3.8vw,15px)] tracking-[0.2em] text-[color:var(--color-mute)] whitespace-nowrap">
+          2026. 11. 15 · SUN · 14:00
+        </p>
+        <p className="mt-1 text-[clamp(11px,3.2vw,13px)] tracking-[0.16em] text-[color:var(--color-mute)] whitespace-nowrap">
+          {data.venue.name}
+        </p>
+
+        <FlowerDivider />
+
+        <button
+          type="button"
+          onClick={onPickInvitation}
+          className="w-full max-w-xs rounded-full bg-[color:var(--color-rose-deep)] px-6 py-4 text-[clamp(14px,4vw,16px)] font-medium tracking-[0.18em] text-white shadow-md active:scale-[0.98] transition"
+        >
+          📬 청첩장 바로보기
+        </button>
+        <button
+          type="button"
+          onClick={onPickGame}
+          className="mt-3 w-full max-w-xs rounded-full border border-[color:var(--color-rose)]/50 bg-white/60 px-6 py-3 text-[clamp(12px,3.6vw,14px)] tracking-[0.16em] text-[color:var(--color-rose-deep)] active:scale-[0.98] transition"
+        >
+          🎮 미니게임 하고 선물 받기
+        </button>
+        <p className="mt-3 text-[11px] tracking-widest text-[color:var(--color-mute)] whitespace-nowrap">
+          ※ 게임 1~3등 소정의 선물 증정
+        </p>
+      </div>
+      <div className="absolute bottom-6 label-caps text-[color:var(--color-mute)]">SCROLL OR TAP</div>
+    </section>
+  );
+}
+
+// ─── 게임 단독 뷰 ───
+// 랜딩 → 게임 선택 시 게임만 보여주고, 클리어/오버 후 자동으로 청첩장 본문으로 전환
+function GameStage({ onComplete, onSkip }: { onComplete: () => void; onSkip: () => void }) {
+  return (
+    <section className="relative min-h-[100svh] bg-white">
+      <div className="flex items-center justify-between px-5 pt-5">
+        <p className="eyebrow">Wedding Quest</p>
+        <button
+          type="button"
+          onClick={onSkip}
+          className="text-[11px] tracking-widest text-[color:var(--color-mute)] underline underline-offset-4 whitespace-nowrap"
+        >
+          청첩장 바로보기 →
+        </button>
+      </div>
+      <WeddingAdventure onComplete={onComplete} />
+    </section>
+  );
+}
+
+type View = "landing" | "game" | "invitation";
+
 export default function Home() {
   const [fontKey, setFontKey] = useState("gowun-batang");
+  const [view, setView] = useState<View>("landing");
+  const [transitioning, setTransitioning] = useState(false);
   const fontVar = useMemo(
     () => FONTS.find((f) => f.key === fontKey)?.cssVar ?? "var(--font-gowun-batang)",
     [fontKey],
   );
+
+  // 게임 종료 → 페이드아웃 후 청첩장 전환
+  const handleGameComplete = useCallback(() => {
+    setTransitioning(true);
+    window.setTimeout(() => {
+      setView("invitation");
+      setTransitioning(false);
+      window.scrollTo({ top: 0, behavior: "auto" });
+    }, 600);
+  }, []);
+
   return (
     <main className="invitation" style={{ fontFamily: fontVar } as React.CSSProperties}>
-      <Hero />
-      <Greeting />
-      <Couple />
-      <Countdown />
-      <Calendar />
-      <Gallery />
-      <Location />
-      <WeddingAdventure />
-      <Account />
-      <Guestbook />
-      <Share />
+      <div className={transitioning ? "fade-out" : "fade-in"} key={view}>
+        {view === "landing" && (
+          <Landing
+            onPickInvitation={() => setView("invitation")}
+            onPickGame={() => setView("game")}
+          />
+        )}
+        {view === "game" && (
+          <GameStage
+            onComplete={handleGameComplete}
+            onSkip={() => setView("invitation")}
+          />
+        )}
+        {view === "invitation" && (
+          <>
+            <Hero />
+            <Greeting />
+            <Couple />
+            <Countdown />
+            <Calendar />
+            <Gallery />
+            <Location />
+            <Account />
+            <Guestbook />
+            <Share />
+          </>
+        )}
+      </div>
       <FontToggle value={fontKey} onChange={setFontKey} />
     </main>
   );
