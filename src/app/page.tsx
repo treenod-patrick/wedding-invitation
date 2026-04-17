@@ -79,7 +79,7 @@ function FontToggle({ value, onChange }: { value: string; onChange: (k: string) 
     <div className="fixed bottom-5 right-5 z-50">
       {open && (
         <div className="mb-2 w-64 max-h-80 overflow-y-auto rounded-sm bg-white shadow-2xl border border-[color:var(--color-line)] p-2">
-          <div className="text-[10px] tracking-[0.3em] uppercase text-[color:var(--color-rose-deep)] px-3 py-2 border-b border-[color:var(--color-line)]">Font</div>
+          <div className="text-[20px] tracking-[0.3em] uppercase text-[color:var(--color-rose-deep)] px-3 py-2 border-b border-[color:var(--color-line)]">Font</div>
           {FONTS.map((f) => (
             <button
               key={f.key}
@@ -90,7 +90,7 @@ function FontToggle({ value, onChange }: { value: string; onChange: (k: string) 
               style={{ fontFamily: f.cssVar }}
             >
               <span className="text-base text-[color:var(--color-charcoal)]">우리 결혼합니다</span>
-              <span className="text-[10px] text-[color:var(--color-mute)] ml-2">{f.category}</span>
+              <span className="text-[20px] text-[color:var(--color-mute)] ml-2">{f.category}</span>
             </button>
           ))}
         </div>
@@ -145,7 +145,7 @@ function Hero() {
         <p className="mt-2 text-sm tracking-[0.25em] text-[color:var(--color-mute)]">2026. 11. 15 · 일</p>
         <p className="mt-2 text-xs tracking-[0.2em] text-[color:var(--color-mute)]">{data.venue.name}</p>
       </div>
-      <div className="absolute bottom-8 text-[10px] tracking-[0.4em] text-[color:var(--color-mute)] animate-pulse">SCROLL</div>
+      <div className="absolute bottom-8 text-[20px] tracking-[0.4em] text-[color:var(--color-mute)] animate-pulse">SCROLL</div>
     </section>
   );
 }
@@ -191,7 +191,7 @@ function Couple() {
       </p>
       <a
         href={`tel:${p.phone}`}
-        className="mt-3 inline-block text-[11px] tracking-widest text-[color:var(--color-rose-deep)] border border-[color:var(--color-line)] rounded-full px-3 py-1"
+        className="mt-3 inline-block text-[22px] tracking-widest text-[color:var(--color-rose-deep)] border border-[color:var(--color-line)] rounded-full px-3 py-1"
       >
         CALL
       </a>
@@ -262,7 +262,7 @@ function Calendar() {
           <p className="text-center tracking-[0.2em] text-[color:var(--color-rose-deep)]">
             {monthName} · {year}
           </p>
-          <div className="mt-4 grid grid-cols-7 text-center text-[11px] tracking-widest text-[color:var(--color-mute)]">
+          <div className="mt-4 grid grid-cols-7 text-center text-[22px] tracking-widest text-[color:var(--color-mute)]">
             {["S", "M", "T", "W", "T", "F", "S"].map((l, i) => (
               <div key={i} className={`py-2 ${i === 0 ? "text-[color:var(--color-rose-deep)]" : ""}`}>{l}</div>
             ))}
@@ -300,7 +300,7 @@ function Gallery() {
             </div>
           ))}
         </div>
-        <p className="mt-4 text-center text-[11px] text-[color:var(--color-mute)]">사진 자리 — 마스터 사진 받으면 교체</p>
+        <p className="mt-4 text-center text-[22px] text-[color:var(--color-mute)]">사진 자리 — 마스터 사진 받으면 교체</p>
       </div>
     </section>
   );
@@ -310,24 +310,43 @@ function Location() {
   const copyAddress = () => {
     navigator.clipboard?.writeText(data.venue.address);
   };
+  // 네이버 지도 — 테라리움 서울 (place id 1618264201)
+  const naverMapUrl =
+    "https://map.naver.com/p/search/%ED%85%8C%EB%9D%BC%EB%A6%AC%EC%9B%80%20%EC%84%9C%EC%9A%B8/place/1618264201?c=15.00,0,0,0,dh&placePath=/home?bk_query=%ED%85%8C%EB%9D%BC%EB%A6%AC%EC%9B%80%20%EC%84%9C%EC%9A%B8&entry=bmp&from=map&fromPanelNum=2&locale=ko&svcName=map_pcv5&searchText=%ED%85%8C%EB%9D%BC%EB%A6%AC%EC%9B%80%20%EC%84%9C%EC%9A%B8";
   return (
     <section className="px-7 py-20">
       <div className="mx-auto max-w-md">
         <SectionHead kicker="Location" title="오시는 길" />
-        <div className="overflow-hidden rounded-sm border border-[color:var(--color-line)]">
-          <iframe
-            src="https://maps.google.com/maps?q=37.6372,127.0694&z=16&output=embed"
-            className="h-64 w-full border-0"
-            loading="lazy"
-          />
-        </div>
+        <a
+          href={naverMapUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="group block overflow-hidden rounded-sm border border-[color:var(--color-line)] bg-[color:var(--color-blush)]/15"
+        >
+          <div className="relative h-64 w-full">
+            {/* 네이버 지도 정적 이미지 (OSM 스태틱 폴백) */}
+            <img
+              src="https://staticmap.openstreetmap.de/staticmap.php?center=37.6372,127.0694&zoom=16&size=600x256&markers=37.6372,127.0694,red"
+              alt={`${data.venue.name} 지도`}
+              className="h-full w-full object-cover"
+              loading="lazy"
+            />
+            <div className="pointer-events-none absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-white/95 px-3 py-1.5 shadow-sm">
+              <span className="inline-block h-2 w-2 rounded-full bg-[#03C75A]" />
+              <span className="text-[20px] font-semibold tracking-wider text-[color:var(--color-charcoal)]">NAVER MAP</span>
+            </div>
+            <div className="pointer-events-none absolute bottom-3 right-3 rounded-full bg-[color:var(--color-charcoal)]/90 px-3 py-1.5 text-[20px] tracking-widest text-[color:var(--color-ivory)] transition group-hover:bg-[color:var(--color-rose-deep)]">
+              네이버 지도 열기 →
+            </div>
+          </div>
+        </a>
         <div className="mt-5 text-center">
           <p className="text-xl tracking-wide text-[color:var(--color-charcoal)]">{data.venue.name}</p>
           <p className="mt-2 text-[13px] text-[color:var(--color-mute)]">{data.venue.address}</p>
           <p className="text-[13px] text-[color:var(--color-mute)]">{data.venue.phone}</p>
           <button
             onClick={copyAddress}
-            className="mt-3 rounded-full border border-[color:var(--color-line)] px-4 py-1.5 text-[11px] tracking-widest text-[color:var(--color-rose-deep)]"
+            className="mt-3 rounded-full border border-[color:var(--color-line)] px-4 py-1.5 text-[22px] tracking-widest text-[color:var(--color-rose-deep)]"
           >
             주소 복사
           </button>
@@ -369,7 +388,7 @@ function Account() {
             <span className="text-[color:var(--color-charcoal)]">{account}</span>
             <button
               onClick={() => navigator.clipboard?.writeText(account)}
-              className="text-[11px] tracking-widest text-[color:var(--color-rose-deep)] border border-[color:var(--color-rose)]/40 rounded-full px-3 py-1"
+              className="text-[22px] tracking-widest text-[color:var(--color-rose-deep)] border border-[color:var(--color-rose)]/40 rounded-full px-3 py-1"
             >
               복사
             </button>
@@ -529,7 +548,7 @@ function Share() {
           >
             SHARE
           </button>
-          <p className="mt-10 text-[10px] tracking-[0.3em] text-[color:var(--color-mute)]">MADE WITH LOVE</p>
+          <p className="mt-10 text-[20px] tracking-[0.3em] text-[color:var(--color-mute)]">MADE WITH LOVE</p>
         </div>
       </div>
     </section>
