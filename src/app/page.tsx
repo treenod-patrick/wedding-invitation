@@ -115,22 +115,9 @@ function SectionHead({ kicker, title }: { kicker: string; title: string }) {
   );
 }
 
-// 공통 카드 래퍼 — 외부는 흰색, 내부 카드만 색
-function Card({
-  tone = "blush",
-  children,
-}: {
-  tone?: "blush" | "peach" | "cream" | "mint" | "sky";
-  children: React.ReactNode;
-}) {
-  const bg = {
-    blush: "bg-[color:var(--color-blush)]",
-    peach: "bg-[color:var(--color-peach)]",
-    cream: "bg-[color:var(--color-cream)]",
-    mint: "bg-[color:var(--color-mint)]",
-    sky: "bg-[color:var(--color-sky)]",
-  }[tone];
-  return <div className={`content-card ${bg}`}>{children}</div>;
+// 공통 카드 래퍼 — 외부는 흰색, 내부는 블러시 단일 톤
+function Card({ children }: { children: React.ReactNode }) {
+  return <div className="content-card bg-[color:var(--color-blush)]">{children}</div>;
 }
 
 function Hero() {
@@ -172,7 +159,7 @@ function Hero() {
 function Greeting() {
   return (
     <section className="px-5 py-10 bg-white">
-      <Card tone="cream">
+      <Card>
         <SectionHead kicker="Invitation" title="초대합니다" />
         <p className="whitespace-pre-line text-center leading-[2.1] text-[15px] text-[color:var(--color-charcoal)]/85">
           {data.greeting}
@@ -218,7 +205,7 @@ function Couple() {
   );
   return (
     <section className="px-5 py-10 bg-white">
-      <Card tone="blush">
+      <Card>
         <SectionHead kicker="The Couple" title="신랑 · 신부" />
         <div className="grid grid-cols-2 gap-4 items-start">
           <Person role="Groom" p={data.groom} />
@@ -239,7 +226,7 @@ function Countdown() {
   ];
   return (
     <section className="px-5 py-10 bg-white">
-      <Card tone="peach">
+      <Card>
         <SectionHead kicker="D-Day" title="우리의 그 날까지" />
         <div className="grid grid-cols-4 gap-2 text-center">
           {items.map((i) => (
@@ -275,7 +262,7 @@ function Calendar() {
   const monthName = target.toLocaleDateString("en-US", { month: "long" });
   return (
     <section className="px-5 py-10 bg-white">
-      <Card tone="cream">
+      <Card>
         <SectionHead kicker="When" title="예식일" />
         <div className="mx-auto max-w-xs rounded-2xl bg-white p-5">
           <p className="text-center tracking-[0.2em] text-[color:var(--color-rose-deep)]">
@@ -331,7 +318,7 @@ function Location() {
     "https://map.naver.com/p/search/%ED%85%8C%EB%9D%BC%EB%A6%AC%EC%9B%80%20%EC%84%9C%EC%9A%B8/place/1618264201?c=15.00,0,0,0,dh&placePath=/home?bk_query=%ED%85%8C%EB%9D%BC%EB%A6%AC%EC%9B%80%20%EC%84%9C%EC%9A%B8&entry=bmp&from=map&fromPanelNum=2&locale=ko&svcName=map_pcv5&searchText=%ED%85%8C%EB%9D%BC%EB%A6%AC%EC%9B%80%20%EC%84%9C%EC%9A%B8";
   return (
     <section className="px-5 py-10 bg-white">
-      <Card tone="mint">
+      <Card>
         <SectionHead kicker="Location" title="오시는 길" />
         <a
           href={naverMapUrl}
@@ -422,7 +409,7 @@ function Account() {
   };
   return (
     <section className="px-5 py-10 bg-white">
-      <Card tone="blush">
+      <Card>
         <SectionHead kicker="Heart" title="마음 전하실 곳" />
         <p className="mb-8 text-center text-[13px] leading-loose text-[color:var(--color-mute)]">
           참석이 어려우신 분들을 위해
@@ -458,7 +445,7 @@ function Guestbook() {
   };
   return (
     <section className="px-5 py-10 bg-white">
-      <Card tone="sky">
+      <Card>
         <SectionHead kicker="Guestbook" title="방명록" />
         <p className="mb-6 text-center text-[13px] text-[color:var(--color-mute)] leading-loose">
           따뜻한 마음 한 줄 남겨주시면
@@ -531,121 +518,6 @@ function Guestbook() {
   );
 }
 
-function RSVP() {
-  const [submitted, setSubmitted] = useState(false);
-  const [name, setName] = useState("");
-  const [side, setSide] = useState<"groom" | "bride" | null>(null);
-  const [count, setCount] = useState<number>(1);
-  const [meal, setMeal] = useState<"yes" | "no" | null>(null);
-  const submit = () => {
-    if (!name.trim() || !side || !meal) return;
-    setSubmitted(true);
-  };
-  return (
-    <section className="px-5 py-10 bg-white">
-      <Card tone="cream">
-        <SectionHead kicker="RSVP" title="참석 알림" />
-        <p className="mb-7 text-center text-[13px] text-[color:var(--color-mute)] leading-loose">
-          전하실 마음을 미리 알려주시면
-          <br />
-          더욱 정성껏 준비하겠습니다.
-        </p>
-
-        {submitted ? (
-          <div className="text-center py-10">
-            <p className="text-[15px] text-[color:var(--color-charcoal)]">전달해 주셔서 감사합니다.</p>
-            <p className="mt-2 text-[13px] text-[color:var(--color-mute)]">결혼식 날 뵙겠습니다.</p>
-          </div>
-        ) : (
-          <div className="space-y-5">
-            <div>
-              <div className="text-[12px] tracking-widest text-[color:var(--color-rose-deep)] mb-2">SIDE</div>
-              <div className="grid grid-cols-2 gap-2">
-                {[
-                  { v: "groom", l: "신랑측" },
-                  { v: "bride", l: "신부측" },
-                ].map((o) => (
-                  <button
-                    key={o.v}
-                    onClick={() => setSide(o.v as "groom" | "bride")}
-                    className={`py-3 rounded-xl text-[14px] transition ${
-                      side === o.v
-                        ? "bg-[color:var(--color-rose-deep)] text-white"
-                        : "bg-white text-[color:var(--color-charcoal)] border border-[color:var(--color-line)]"
-                    }`}
-                  >
-                    {o.l}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <div className="text-[12px] tracking-widest text-[color:var(--color-rose-deep)] mb-2">NAME</div>
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="성함을 입력해주세요"
-                className="w-full px-4 py-3 rounded-xl bg-white text-[14px] border border-[color:var(--color-line)] focus:outline-none focus:border-[color:var(--color-rose-deep)]"
-              />
-            </div>
-
-            <div>
-              <div className="text-[12px] tracking-widest text-[color:var(--color-rose-deep)] mb-2">PEOPLE</div>
-              <div className="flex items-center justify-between rounded-xl bg-white border border-[color:var(--color-line)] px-4 py-2">
-                <button
-                  onClick={() => setCount((c) => Math.max(1, c - 1))}
-                  className="h-8 w-8 rounded-full border border-[color:var(--color-line)] text-[color:var(--color-rose-deep)] text-lg leading-none"
-                >
-                  −
-                </button>
-                <span className="text-[15px] text-[color:var(--color-charcoal)]">
-                  본인 포함 <b className="mx-1 text-[color:var(--color-rose-deep)]">{count}</b>명
-                </span>
-                <button
-                  onClick={() => setCount((c) => Math.min(10, c + 1))}
-                  className="h-8 w-8 rounded-full border border-[color:var(--color-line)] text-[color:var(--color-rose-deep)] text-lg leading-none"
-                >
-                  +
-                </button>
-              </div>
-            </div>
-
-            <div>
-              <div className="text-[12px] tracking-widest text-[color:var(--color-rose-deep)] mb-2">MEAL</div>
-              <div className="grid grid-cols-2 gap-2">
-                {[
-                  { v: "yes", l: "식사함" },
-                  { v: "no", l: "식사 안 함" },
-                ].map((o) => (
-                  <button
-                    key={o.v}
-                    onClick={() => setMeal(o.v as "yes" | "no")}
-                    className={`py-3 rounded-xl text-[14px] transition ${
-                      meal === o.v
-                        ? "bg-[color:var(--color-rose-deep)] text-white"
-                        : "bg-white text-[color:var(--color-charcoal)] border border-[color:var(--color-line)]"
-                    }`}
-                  >
-                    {o.l}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <button
-              onClick={submit}
-              className="w-full py-3.5 rounded-xl bg-[color:var(--color-charcoal)] text-white text-[13px] tracking-[0.3em] mt-2"
-            >
-              전달하기
-            </button>
-          </div>
-        )}
-      </Card>
-    </section>
-  );
-}
-
 function Share() {
   const share = async () => {
     if (typeof navigator !== "undefined" && navigator.share) {
@@ -696,7 +568,6 @@ export default function Home() {
       <Location />
       <Account />
       <Guestbook />
-      <RSVP />
       <Share />
       <FontToggle value={fontKey} onChange={setFontKey} />
     </main>
