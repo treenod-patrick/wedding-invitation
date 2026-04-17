@@ -1400,6 +1400,7 @@ function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number)
 // 신랑: 검은 턱시도 + 흰 와이셔츠 + 나비넥타이
 // 신부: 흰 드레스 + 면사포
 function drawHero(ctx: CanvasRenderingContext2D, cx: number, cy: number, facing: string, sex: Sex, tick: number) {
+  const isGroom = sex === "groom";
   // 그림자
   ctx.fillStyle = "rgba(0,0,0,0.2)";
   ctx.beginPath();
@@ -1407,49 +1408,80 @@ function drawHero(ctx: CanvasRenderingContext2D, cx: number, cy: number, facing:
   ctx.fill();
   // 다리 2프레임
   const legSwap = Math.floor(tick * 6) % 2 === 0;
-  // 몸
-  ctx.fillStyle = sex === "bride" ? "#f8efe8" : "#2a2a38";
-  ctx.fillRect(cx - 5, cy - 2, 10, 12);
-  // 셔츠 V (신랑)
-  if (sex === "groom") {
+  // 몸 — 신랑(소년)은 네이비 재킷, 신부는 드레스 상의
+  ctx.fillStyle = isGroom ? "#1f2a44" : "#f8efe8";
+  ctx.fillRect(cx - 5, cy - 1, 10, 11);
+  if (isGroom) {
+    // 셔츠 V
     ctx.fillStyle = "#ffffff";
-    ctx.fillRect(cx - 2, cy, 4, 8);
-    // 나비넥타이
+    ctx.fillRect(cx - 2, cy + 1, 4, 7);
+    // 나비넥타이 (조금 더 큼직하게)
     ctx.fillStyle = "#c94a4a";
-    ctx.fillRect(cx - 2, cy, 4, 2);
+    ctx.fillRect(cx - 3, cy + 1, 6, 2);
+    // 재킷 라펠
+    ctx.fillStyle = "#141c2e";
+    ctx.fillRect(cx - 3, cy + 3, 1, 6);
+    ctx.fillRect(cx + 2, cy + 3, 1, 6);
+    // 금색 단추
+    ctx.fillStyle = "#d4b86a";
+    ctx.fillRect(cx, cy + 5, 1, 1);
   } else {
     // 드레스 치마
     ctx.fillStyle = "#ffe4e4";
     ctx.fillRect(cx - 6, cy + 6, 12, 6);
   }
-  // 얼굴
-  ctx.fillStyle = "#f5d0b5";
-  ctx.fillRect(cx - 4, cy - 10, 8, 8);
-  // 머리
-  ctx.fillStyle = sex === "bride" ? "#efe0cf" : "#2b1e16";
-  if (facing === "up") {
-    ctx.fillRect(cx - 5, cy - 13, 10, 6);
+  // 얼굴 — 소년은 살짝 더 둥글고 크게
+  ctx.fillStyle = "#f8d6b5";
+  if (isGroom) {
+    ctx.fillRect(cx - 4, cy - 11, 8, 9);
+    ctx.fillRect(cx - 5, cy - 9, 1, 5);
+    ctx.fillRect(cx + 4, cy - 9, 1, 5);
   } else {
-    ctx.fillRect(cx - 5, cy - 13, 10, 4);
-    ctx.fillRect(cx - 5, cy - 10, 2, 3);
-    ctx.fillRect(cx + 3, cy - 10, 2, 3);
+    ctx.fillRect(cx - 4, cy - 10, 8, 8);
+  }
+  // 머리 — 신랑은 밝은 갈색 소년 머리(앞머리 삐침), 신부는 기존 유지
+  ctx.fillStyle = isGroom ? "#3d2818" : "#efe0cf";
+  if (isGroom) {
+    if (facing === "up") {
+      ctx.fillRect(cx - 5, cy - 14, 10, 7);
+    } else {
+      // 볼륨 있는 앞머리
+      ctx.fillRect(cx - 5, cy - 14, 10, 5);
+      ctx.fillRect(cx - 5, cy - 11, 3, 3);
+      ctx.fillRect(cx + 2, cy - 11, 3, 3);
+      // 삐친 앞머리 한 가닥
+      ctx.fillRect(cx - 1, cy - 15, 2, 2);
+    }
+  } else {
+    if (facing === "up") {
+      ctx.fillRect(cx - 5, cy - 13, 10, 6);
+    } else {
+      ctx.fillRect(cx - 5, cy - 13, 10, 4);
+      ctx.fillRect(cx - 5, cy - 10, 2, 3);
+      ctx.fillRect(cx + 3, cy - 10, 2, 3);
+    }
   }
   // 면사포 (신부)
-  if (sex === "bride") {
+  if (!isGroom) {
     ctx.fillStyle = "rgba(255,255,255,0.75)";
     ctx.fillRect(cx - 6, cy - 14, 12, 2);
     ctx.fillRect(cx - 5, cy - 6, 1, 6);
     ctx.fillRect(cx + 4, cy - 6, 1, 6);
   }
-  // 눈
+  // 눈 + 볼터치(소년 귀여움 포인트)
   if (facing !== "up") {
     ctx.fillStyle = "#1a1a1a";
     if (facing === "left") { ctx.fillRect(cx - 3, cy - 7, 1, 2); }
     else if (facing === "right") { ctx.fillRect(cx + 2, cy - 7, 1, 2); }
     else { ctx.fillRect(cx - 3, cy - 7, 1, 2); ctx.fillRect(cx + 2, cy - 7, 1, 2); }
+    if (isGroom) {
+      ctx.fillStyle = "rgba(240,120,120,0.55)";
+      ctx.fillRect(cx - 4, cy - 4, 2, 1);
+      ctx.fillRect(cx + 2, cy - 4, 2, 1);
+    }
   }
-  // 다리
-  ctx.fillStyle = "#1a1a1a";
+  // 다리 — 신랑은 네이비 정장 바지
+  ctx.fillStyle = isGroom ? "#141c2e" : "#1a1a1a";
   if (legSwap) {
     ctx.fillRect(cx - 4, cy + 10, 3, 4);
     ctx.fillRect(cx + 1, cy + 10, 3, 4);
