@@ -648,6 +648,8 @@ function WeddingAdventure() {
   const spawnRef = useRef(0.8);
   const invincRef = useRef(0);
   const runScrollRef = useRef(0);
+  // 트레일링 파트너(반대 캐릭터) 레인 히스토리 — 약 1초 지연
+  const laneTrailRef = useRef<number[]>(Array(24).fill(1));
 
   // RAF 루프
   const rafRef = useRef<number | null>(null);
@@ -680,6 +682,7 @@ function WeddingAdventure() {
     spawnRef.current = 0.8;
     invincRef.current = 0;
     runScrollRef.current = 0;
+    laneTrailRef.current = Array(24).fill(1);
     setScore(0);
     setRemain(RUN_DURATION);
     setLives(3);
@@ -844,6 +847,9 @@ function WeddingAdventure() {
         runScrollRef.current = (runScrollRef.current + dt * 120) % 32;
         if (invincRef.current > 0) invincRef.current -= dt;
         setRemain(Math.max(0, Math.ceil(remainRef.current)));
+        // 트레일 레인 히스토리 푸시 (매 프레임마다, ~1초 지연 큐)
+        laneTrailRef.current.push(laneRef.current);
+        if (laneTrailRef.current.length > 24) laneTrailRef.current.shift();
 
         // 스폰
         spawnRef.current -= dt;
@@ -904,6 +910,7 @@ function WeddingAdventure() {
         cursorBlink: cursorBlinkRef.current,
         runner: {
           lane: laneRef.current,
+          trailLane: laneTrailRef.current[0] ?? laneRef.current,
           items: itemsRef.current,
           invinc: invincRef.current,
           remain: remainRef.current,
@@ -974,18 +981,21 @@ function WeddingAdventure() {
                   <button
                     type="button"
                     onClick={() => { sexRef.current = "groom"; setSex("groom"); }}
-                    className={`flex-1 py-2 rounded-md text-[12px] tracking-widest border ${sex === "groom" ? "bg-[color:var(--color-rose-deep)] text-white border-transparent" : "border-[color:var(--color-rose)]/40"}`}
+                    className={`flex-1 py-3 rounded-md text-[12px] tracking-widest border ${sex === "groom" ? "bg-[color:var(--color-rose-deep)] text-white border-transparent" : "border-[color:var(--color-rose)]/40"}`}
                   >
-                    신랑
+                    🤵 채종현 (신랑)
                   </button>
                   <button
                     type="button"
                     onClick={() => { sexRef.current = "bride"; setSex("bride"); }}
-                    className={`flex-1 py-2 rounded-md text-[12px] tracking-widest border ${sex === "bride" ? "bg-[color:var(--color-rose-deep)] text-white border-transparent" : "border-[color:var(--color-rose)]/40"}`}
+                    className={`flex-1 py-3 rounded-md text-[12px] tracking-widest border ${sex === "bride" ? "bg-[color:var(--color-rose-deep)] text-white border-transparent" : "border-[color:var(--color-rose)]/40"}`}
                   >
-                    신부
+                    👰 최수빈 (신부)
                   </button>
                 </div>
+                <p className="text-[10px] tracking-widest opacity-55 text-center">
+                  선택한 반대 파트너가 러너에서 뒤따라옵니다
+                </p>
                 <button
                   type="button"
                   onClick={() => setPhaseBoth("runner")}
@@ -1066,6 +1076,7 @@ type DrawCtx = {
   cursorBlink: number;
   runner: {
     lane: number;
+    trailLane: number;
     items: RunnerItem[];
     invinc: number;
     remain: number;
@@ -1452,6 +1463,17 @@ function drawRunner(ctx: CanvasRenderingContext2D, c: DrawCtx) {
     const x = LANE_X[it.lane];
     drawRunnerItem(ctx, x, it.y, it.kind);
   }
+  // 트레일링 파트너 (반대 캐릭터, 약 1초 지연)
+  const partnerSex: Sex = c.sex === "groom" ? "bride" : "groom";
+  const tx = LANE_X[c.runner.trailLane];
+  const ty = VH - 22;
+  drawHero(ctx, tx, ty, "up", partnerSex, performance.now() / 1000);
+  // 파트너 이름 라벨
+  ctx.fillStyle = "rgba(0,0,0,0.55)";
+  ctx.font = "9px ui-monospace";
+  ctx.textAlign = "center";
+  ctx.fillText(partnerSex === "bride" ? "수빈" : "종현", tx, ty + 16);
+  ctx.textAlign = "left";
   // 플레이어
   const px = LANE_X[c.runner.lane];
   const py = VH - 46;
@@ -1560,12 +1582,19 @@ function drawEnding(ctx: CanvasRenderingContext2D, c: DrawCtx, cleared: boolean)
   ctx.fillRect(0, 0, VW, VH);
   if (cleared) {
     drawChapelPixel(ctx, VW / 2, VH / 2 - 40);
+    // 제단에서 손잡은 신랑·신부
+    const cy = VH / 2 + 40;
+    drawHero(ctx, VW / 2 - 14, cy, "down", "groom", performance.now() / 1000);
+    drawHero(ctx, VW / 2 + 14, cy, "down", "bride", performance.now() / 1000);
+    // 손잡는 표시 (하트)
+    drawHeart(ctx, VW / 2, cy - 8, 4, "#e94a6a");
     ctx.fillStyle = "#3d2b28";
     ctx.font = "bold 16px ui-sans-serif";
     ctx.textAlign = "center";
-    ctx.fillText("결혼했다!", VW / 2, VH / 2 + 70);
+    ctx.fillText("결혼했다!", VW / 2, VH / 2 + 80);
     ctx.font = "10px ui-monospace";
-    ctx.fillText(`${c.nickname || "하객"} 점수 ${c.runner.score}`, VW / 2, VH / 2 + 90);
+    ctx.fillText("종현 ♥ 수빈", VW / 2, VH / 2 + 96);
+    ctx.fillText(`${c.nickname || "하객"} 점수 ${c.runner.score}`, VW / 2, VH / 2 + 110);
     ctx.textAlign = "left";
   } else {
     ctx.fillStyle = "#fff";
