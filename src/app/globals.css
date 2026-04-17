@@ -1,17 +1,23 @@
 @import "tailwindcss";
 
 :root {
-  /* 블러시 + 로즈 + 차콜 톤 (페이퍼 베이스) */
-  --paper: #fbf8f5;
-  --paper-soft: #f5ece4;
-  --blush: #f0d8d3;
-  --rose: #d8a7a1;
-  --rose-deep: #b87d78;
-  --charcoal: #2b2824;
-  --mute: #9b8e87;
-  --line: #e8ddd6;
-  --ink: #2b2824;
-  --ivory: #fbf8f5;
+  /* 화사한 파스텔 팔레트 — 흰 베이스 + 카드만 색상 */
+  --paper: #ffffff;
+  --paper-soft: #fffafa;
+  --blush: #fff0f1;
+  --blush-deep: #fde6e8;
+  --peach: #fff1e6;
+  --cream: #fff9ec;
+  --mint: #ecf7f1;
+  --sky: #eef4f9;
+  --rose: #f4a8aa;
+  --rose-deep: #e07b80;
+  --charcoal: #3a3633;
+  --mute: #a89e98;
+  --line: #f3e9e6;
+  --gold: #d4af6f;
+  --ink: #3a3633;
+  --ivory: #ffffff;
 
   --font-active: var(--font-gowun-batang);
 }
@@ -20,18 +26,24 @@
   --color-paper: var(--paper);
   --color-paper-soft: var(--paper-soft);
   --color-blush: var(--blush);
+  --color-blush-deep: var(--blush-deep);
+  --color-peach: var(--peach);
+  --color-cream: var(--cream);
+  --color-mint: var(--mint);
+  --color-sky: var(--sky);
   --color-rose: var(--rose);
   --color-rose-deep: var(--rose-deep);
   --color-charcoal: var(--charcoal);
   --color-mute: var(--mute);
   --color-line: var(--line);
+  --color-gold: var(--gold);
   --color-ink: var(--ink);
   --color-ivory: var(--ivory);
   --font-active: var(--font-active);
 }
 
 body {
-  background: var(--paper);
+  background: #f7f4f1;
   color: var(--charcoal);
   font-family: var(--font-active), "Gowun Batang", serif;
   letter-spacing: -0.005em;
@@ -40,8 +52,8 @@ body {
 .invitation {
   max-width: 28rem;
   margin: 0 auto;
-  background: #fffefb;
-  box-shadow: 0 0 80px rgba(184, 125, 120, 0.08);
+  background: #ffffff;
+  box-shadow: 0 0 80px rgba(224, 123, 128, 0.06);
   min-height: 100vh;
 }
 
@@ -54,17 +66,15 @@ body {
 
 .section-title {
   font-family: var(--font-active), "Gowun Batang", serif;
-  font-size: 1.4rem;
+  font-size: 1.6rem;
   color: var(--charcoal);
 }
 
-/* 꽃 디바이더는 컴포넌트에서 SVG로 직접 렌더 */
-.divider-h {
-  display: block;
-  height: 1px;
-  width: 80%;
-  margin: 0 auto;
-  background: var(--line);
+/* 콘텐츠 카드 — 색이 있는 박스 */
+.content-card {
+  border-radius: 1.25rem;
+  padding: 2.25rem 1.5rem;
+  box-shadow: 0 6px 30px rgba(228, 169, 175, 0.08);
 }
 
 @keyframes fade-in {
