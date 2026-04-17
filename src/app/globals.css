@@ -16,6 +16,14 @@
   --ivory: #ffffff;
 
   --font-active: var(--font-gowun-batang);
+
+  /* 반응형 타이포 토큰 — 360/375/393/414 구간 줄바꿈 일관성 확보 */
+  --fs-micro: clamp(10px, 2.8vw, 12px);
+  --fs-caption: clamp(12px, 3.4vw, 14px);
+  --fs-body: clamp(13px, 3.8vw, 15px);
+  --fs-lead: clamp(15px, 4.4vw, 17px);
+  --fs-title: clamp(20px, 5.8vw, 26px);
+  --fs-hero: clamp(28px, 8.5vw, 40px);
 }
 
 @theme inline {
@@ -47,6 +55,32 @@ body {
   background: #ffffff;
   box-shadow: 0 0 80px rgba(224, 123, 128, 0.06);
   min-height: 100vh;
+  /* 한국어 어절 단위 줄바꿈 — 뷰포트 폭 편차로 2줄↔3줄 흔들리는 이슈 해소 */
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  hyphens: none;
+}
+
+.invitation p,
+.invitation h1,
+.invitation h2,
+.invitation h3,
+.invitation span,
+.invitation div,
+.invitation li {
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+/* 수동 개행(<br>)을 반응형에서 무력화할 때 쓰는 유틸 */
+.invitation .br-optional {
+  display: inline;
+}
+@media (max-width: 380px) {
+  .invitation .br-optional {
+    display: block;
+    content: "";
+  }
 }
 
 .eyebrow {
