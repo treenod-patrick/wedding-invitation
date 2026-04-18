@@ -1,7 +1,17 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { motion, AnimatePresence, type PanInfo } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion, type PanInfo } from "framer-motion";
+
+// 모바일 햅틱 (지원 안 하는 브라우저는 자동 무시)
+const vibrate = (pattern: number | number[]) => {
+  if (typeof navigator === "undefined") return;
+  try {
+    navigator.vibrate?.(pattern);
+  } catch {
+    /* noop */
+  }
+};
 
 // 더미 데이터 — 마스터 정보 받으면 교체
 const data = {
@@ -698,6 +708,7 @@ function SwipeDeck({ onDone }: { onDone: () => void }) {
 
   const handleSwipe = useCallback(
     (dir: 1 | -1) => {
+      vibrate(20);
       if (dir === 1) setLiked((v) => v + 1);
       setIndex((v) => {
         const next = v + 1;
@@ -856,6 +867,7 @@ function MemoryBoard({ onDone }: { onDone: () => void }) {
         setTries((t) => t + 1);
         const [a, b] = nowFlipped;
         if (a.icon === b.icon) {
+          vibrate([20, 40, 30]);
           setTimeout(() => {
             setDeck((cur) =>
               cur.map((c) => (c.icon === a.icon ? { ...c, matched: true, flipped: true } : c)),
@@ -933,34 +945,87 @@ function MemoryTile({ card, onFlip }: { card: MemCard; onFlip: () => void }) {
   );
 }
 
-// ─── Stage 3 : 탭 러너 ──────────────────────────────────
+// ─── Stage 3 : 홀드-릴리즈 폭죽 ──────────────────────────
+// 버튼을 꾹 눌러 게이지(0→100)를 채우고, 일정 이상에서 떼면 폭죽이 터진다.
+const HOLD_DURATION_MS = 1600; // 100까지 차오르는 시간
+const HOLD_MIN_PERCENT = 70; // 최소 홀드 판정(실수 릴리즈 방지)
+
 function TapRunner({ onDone }: { onDone: () => void }) {
+  const reduced = useReducedMotion();
   const [progress, setProgress] = useState(0);
-  const GOAL = 100;
-  const STEP = 14;
-  const done = progress >= GOAL;
+  const [released, setReleased] = useState(false);
+  const [launched, setLaunched] = useState(false);
+  const rafRef = useRef<number | null>(null);
+  const startRef = useRef<number | null>(null);
+
+  const stopHold = useCallback(() => {
+    if (rafRef.current !== null) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
+    startRef.current = null;
+  }, []);
 
   useEffect(() => {
-    if (done) {
-      const t = setTimeout(onDone, 900);
+    return () => stopHold();
+  }, [stopHold]);
+
+  useEffect(() => {
+    if (launched) {
+      const t = setTimeout(onDone, 1500);
       return () => clearTimeout(t);
     }
-  }, [done, onDone]);
+  }, [launched, onDone]);
 
-  const tap = () => {
-    if (done) return;
-    setProgress((v) => Math.min(GOAL, v + STEP));
+  const startHold = () => {
+    if (launched) return;
+    setReleased(false);
+    startRef.current = performance.now();
+    const tick = (now: number) => {
+      if (startRef.current === null) return;
+      const elapsed = now - startRef.current;
+      const next = Math.min(100, (elapsed / HOLD_DURATION_MS) * 100);
+      setProgress(next);
+      if (next < 100) {
+        rafRef.current = requestAnimationFrame(tick);
+      } else {
+        rafRef.current = null;
+      }
+    };
+    rafRef.current = requestAnimationFrame(tick);
+  };
+
+  const endHold = () => {
+    if (launched) return;
+    stopHold();
+    setReleased(true);
+    setProgress((current) => {
+      if (current >= HOLD_MIN_PERCENT) {
+        vibrate([30, 20, 60]);
+        setLaunched(true);
+        return 100;
+      }
+      // 부족하면 리셋 후 다시 도전
+      setTimeout(() => {
+        setProgress(0);
+        setReleased(false);
+      }, 280);
+      return current;
+    });
   };
 
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-5">
+    <div
+      className="flex h-full flex-col items-center justify-center gap-5"
+      onContextMenu={(e) => e.preventDefault()}
+    >
       <div className="text-center">
-        <p className="eyebrow">Stage 3 · Tap</p>
+        <p className="eyebrow">Stage 3 · Hold & Release</p>
         <h3 className="mt-1 text-[17px] font-medium text-[color:var(--color-ink)]">
-          식장까지 함께 가요
+          꾹 눌러 폭죽을 쏘아 올려요
         </h3>
         <p className="mt-1 text-[11px] text-[color:var(--color-mute)]">
-          화면을 탭하면 함께 달려갑니다
+          게이지가 가득 차면 손을 떼세요
         </p>
       </div>
 
@@ -968,44 +1033,71 @@ function TapRunner({ onDone }: { onDone: () => void }) {
         <motion.div
           initial={false}
           animate={{ width: `${progress}%` }}
-          transition={{ type: "spring", stiffness: 260, damping: 22 }}
+          transition={{ duration: reduced ? 0 : 0.1, ease: "linear" }}
           className="h-2 rounded-full bg-gradient-to-r from-[#c68e9a] to-[#8f5c6b]"
         />
       </div>
 
-      <div className="relative h-[160px] w-full max-w-[320px] overflow-hidden rounded-3xl bg-gradient-to-b from-[#fdf2f5] to-white ring-1 ring-[color:var(--color-blush)]/40">
+      <div className="relative h-[200px] w-full max-w-[320px] overflow-hidden rounded-3xl bg-gradient-to-b from-[#fdf2f5] to-white ring-1 ring-[color:var(--color-blush)]/40">
+        {/* 신랑·신부 커플 */}
         <motion.div
           initial={false}
-          animate={{ x: `${progress * 0.7}%` }}
-          transition={{ type: "spring", stiffness: 220, damping: 24 }}
-          className="absolute bottom-4 left-2 flex items-end gap-1"
+          animate={{
+            y: launched ? -40 : 0,
+            scale: launched ? 1.1 : 1,
+          }}
+          transition={{ duration: reduced ? 0 : 0.6, ease: "backOut" }}
+          className="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-end gap-1"
         >
-          <motion.span
-            animate={{ y: done ? 0 : [0, -4, 0] }}
-            transition={{ duration: 0.4, repeat: done ? 0 : Infinity }}
-            className="text-3xl"
-          >
-            🤵
-          </motion.span>
-          <motion.span
-            animate={{ y: done ? 0 : [0, -4, 0] }}
-            transition={{ duration: 0.4, repeat: done ? 0 : Infinity, delay: 0.15 }}
-            className="text-3xl"
-          >
-            👰
-          </motion.span>
+          <span className="text-3xl">🤵</span>
+          <span className="text-4xl">💒</span>
+          <span className="text-3xl">👰</span>
         </motion.div>
-        <div className="absolute bottom-4 right-4 text-4xl">💒</div>
-        <div className="absolute bottom-2 left-0 right-0 h-[2px] bg-[color:var(--color-blush)]/60" />
+
+        {/* 폭죽 파티클 */}
+        <AnimatePresence>
+          {launched && (
+            <>
+              {Array.from({ length: 14 }).map((_, i) => {
+                const angle = (Math.PI * 2 * i) / 14;
+                const radius = 90 + Math.random() * 30;
+                const dx = Math.cos(angle) * radius;
+                const dy = Math.sin(angle) * radius;
+                const symbols = ["💗", "✨", "🎉", "💐", "💍"];
+                const s = symbols[i % symbols.length];
+                return (
+                  <motion.span
+                    key={i}
+                    initial={{ x: 0, y: 0, opacity: 0, scale: 0.4 }}
+                    animate={{
+                      x: reduced ? 0 : dx,
+                      y: reduced ? 0 : dy,
+                      opacity: [0, 1, 1, 0],
+                      scale: [0.4, 1, 1, 0.8],
+                    }}
+                    transition={{ duration: reduced ? 0.2 : 1.1, ease: "easeOut" }}
+                    className="absolute left-1/2 top-[52%] -translate-x-1/2 -translate-y-1/2 text-xl"
+                  >
+                    {s}
+                  </motion.span>
+                );
+              })}
+            </>
+          )}
+        </AnimatePresence>
       </div>
 
       <button
         type="button"
-        onClick={tap}
-        disabled={done}
-        className="w-full max-w-[320px] rounded-full bg-[#b07989] py-4 text-[14px] font-medium tracking-widest text-white shadow-[0_6px_18px_-8px_rgba(176,121,137,0.6)] transition active:scale-[0.98] disabled:opacity-60"
+        onPointerDown={startHold}
+        onPointerUp={endHold}
+        onPointerLeave={endHold}
+        onPointerCancel={endHold}
+        disabled={launched}
+        className="w-full max-w-[320px] select-none rounded-full bg-[#b07989] py-4 text-[14px] font-medium tracking-widest text-white shadow-[0_6px_18px_-8px_rgba(176,121,137,0.6)] transition active:scale-[0.98] disabled:opacity-70"
+        style={{ touchAction: "none" }}
       >
-        {done ? "💒 도착!" : "TAP!"}
+        {launched ? "🎉 축하합니다!" : released && progress < HOLD_MIN_PERCENT ? "조금 더 꾹 눌러요" : "꾹 누르세요"}
       </button>
     </div>
   );
