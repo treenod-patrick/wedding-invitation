@@ -89,6 +89,7 @@ const jua = Jua({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://wedding-invitation-self-gamma.vercel.app"),
   title: "채종현 · 최수빈 결혼합니다",
   description: "2026년 11월 15일 일요일 오후 2시 · 테라리움 서울",
   openGraph: {
