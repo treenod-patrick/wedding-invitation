@@ -22,10 +22,16 @@ const data = {
   venue: {
     name: "테라리움 서울",
     address: "서울특별시 노원구 노원로 247 서울온천 7~8층",
-    subway: "7호선 하계역 1번 출구 도보 7분",
+    subway: "7호선 하계역 도보 약 7분",
     bus: "하계역·서울온천 정류장 (146·1224·1226·1227·1132)",
-    parking: "건물 주차장 700대 · 무료 2시간",
-    parkingExtra: "본 건물 만차 시 인근 대진고등학교 주차장(도보 5분)",
+    parking: "건물 주차장 약 700대 수용 · 최초 2시간 무료",
+    parkingLots: [
+      "제1주차장 — 본 건물 전용 주차장",
+      "제2주차장 — 본 건물 인근 2곳 운영",
+      "제3주차장 — 도보 거리 보조 주차장",
+    ],
+    parkingExtra: "본 건물 만차 시 인근 대진고등학교 주차장 이용 가능 (도보 약 5분, 횡단보도 1개)",
+    parkingTip: "주말 피크 시간대에는 조기 만차 가능성이 있어 가급적 대중교통을 권장드립니다. 자세한 셔틀버스 운행 여부는 안내 데스크(02-6316-7700)로 문의 부탁드립니다.",
     phone: "02-6316-7700",
     lat: 37.6394920,
     lng: 127.0733210,
@@ -446,11 +452,20 @@ function Location() {
           </div>
           <div className="flex gap-3">
             <span className="min-w-[48px] text-[color:var(--color-rose-deep)] text-[13px] whitespace-nowrap">주차</span>
-            <span>
-              {data.venue.parking}
-              <br />
-              <span className="text-[12px] text-[color:var(--color-mute)]">{data.venue.parkingExtra}</span>
-            </span>
+            <div className="flex-1 space-y-2">
+              <p>{data.venue.parking}</p>
+              {data.venue.parkingLots && data.venue.parkingLots.length > 0 && (
+                <ul className="list-disc pl-5 text-[12px] leading-relaxed text-[color:var(--color-charcoal)]/75 space-y-0.5">
+                  {data.venue.parkingLots.map((lot) => (
+                    <li key={lot}>{lot}</li>
+                  ))}
+                </ul>
+              )}
+              <p className="text-[12px] leading-relaxed text-[color:var(--color-mute)]">{data.venue.parkingExtra}</p>
+              {data.venue.parkingTip && (
+                <p className="text-[12px] leading-relaxed text-[color:var(--color-mute)]">{data.venue.parkingTip}</p>
+              )}
+            </div>
           </div>
         </div>
       </Card>
