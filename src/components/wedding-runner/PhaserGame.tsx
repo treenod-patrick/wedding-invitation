@@ -322,6 +322,14 @@ export default function PhaserGame({
           this.load.image("bride-jump", "/wedding-runner/bride-jump.png");
           this.load.image("bride-hurt", "/wedding-runner/bride-hurt.png");
           this.load.image("bride-happy", "/wedding-runner/bride-happy.png");
+          // 신랑 애니메이션 프레임 (Jong-hyun Groom 시트에서 추출)
+          this.load.spritesheet("groom-run", "/wedding-runner/groom-run.png", {
+            frameWidth: 200,
+            frameHeight: 250,
+          });
+          this.load.image("groom-jump", "/wedding-runner/groom-jump.png");
+          this.load.image("groom-hurt", "/wedding-runner/groom-hurt.png");
+          this.load.image("groom-happy", "/wedding-runner/groom-happy.png");
           // 게임오버 씬에 띄울 오리지널 일러스트
           this.load.image("game-over", "/wedding-runner/game-over.png");
           // 스테이지1 배경 (마스터 제공 · 가로 타일링)
@@ -363,11 +371,9 @@ export default function PhaserGame({
           const PLAYER_H = 92;
           state.playerW = PLAYER_W;
           state.playerH = PLAYER_H;
-          // 신부: Run spritesheet 프레임 0으로 시작 — update에서 프레임 교차 애니
-          // 신랑: 아직 애니 시트 미공급 → 기존 정적 이미지 유지
-          const textureKey = playerType === "bride" ? "bride-run" : "player-groom";
-          const initialFrame = playerType === "bride" ? 0 : undefined;
-          state.player = scene.add.image(PLAYER_X, GROUND_Y - PLAYER_H / 2, textureKey, initialFrame);
+          // 신부/신랑 공통: Run spritesheet 프레임 0으로 시작 — update에서 프레임 교차 애니
+          const runKey = `${playerType}-run`;
+          state.player = scene.add.image(PLAYER_X, GROUND_Y - PLAYER_H / 2, runKey, 0);
           state.player.setDisplaySize(PLAYER_W, PLAYER_H);
 
           const hudStyle = { fontFamily: "monospace", fontSize: "18px", color: "#3a2430", fontStyle: "bold" };
@@ -411,29 +417,21 @@ export default function PhaserGame({
               state.isJumping = false;
               state.velocityY = 0;
             }
-            // 신부: 점프 프레임으로 교체 (공중 포즈 — JUMP CYCLE 3 PEAK)
-            if (playerType === "bride") {
-              state.player!.setTexture("bride-jump");
-              state.player!.setDisplaySize(state.playerW!, state.playerH!);
-            }
+            // 공중 포즈 — JUMP PEAK 프레임 교체 (신부/신랑 공통)
+            state.player!.setTexture(`${playerType}-jump`);
+            state.player!.setDisplaySize(state.playerW!, state.playerH!);
           } else {
-            if (playerType === "bride") {
-              // 신부: 피격/행복 우선, 그외 달리기 2프레임 교차 (120ms)
-              const now = scene.time.now;
-              if (now < (state.hurtUntil ?? 0)) {
-                state.player!.setTexture("bride-hurt");
-              } else if (now < (state.happyUntil ?? 0)) {
-                state.player!.setTexture("bride-happy");
-              } else {
-                const fr = Math.floor((state.elapsed ?? 0) / 120) % 2;
-                state.player!.setTexture("bride-run", fr);
-              }
-              state.player!.setDisplaySize(state.playerW!, state.playerH!);
+            // 피격/행복 우선, 그외 달리기 2프레임 교차 (120ms) — 신부/신랑 공통
+            const now = scene.time.now;
+            if (now < (state.hurtUntil ?? 0)) {
+              state.player!.setTexture(`${playerType}-hurt`);
+            } else if (now < (state.happyUntil ?? 0)) {
+              state.player!.setTexture(`${playerType}-happy`);
             } else {
-              // 신랑: 달리기 호흡 — squash & stretch (정적 이미지 대응)
-              const wob = Math.sin(state.elapsed! / 90) * 0.05;
-              state.player!.setScale(state.player!.scaleX, (baseH / state.player!.height) * (1 + wob));
+              const fr = Math.floor((state.elapsed ?? 0) / 120) % 2;
+              state.player!.setTexture(`${playerType}-run`, fr);
             }
+            state.player!.setDisplaySize(state.playerW!, state.playerH!);
           }
 
           if (scene.time.now < (state.invincibleUntil ?? 0)) {
