@@ -279,9 +279,9 @@ export default function WeddingRunner({ onComplete }: { onComplete: () => void }
   }
 
   if (stage === "character") {
-    const options: { type: PlayerType; label: string; src: string; sub: string }[] = [
-      { type: "bride", label: "신부", src: "/wedding-runner/bride.png", sub: "Bride" },
-      { type: "groom", label: "신랑", src: "/wedding-runner/groom.png", sub: "Groom" },
+    const options: { type: PlayerType; label: string; runSheet: string; sub: string }[] = [
+      { type: "bride", label: "신부", runSheet: "/wedding-runner/bride-run.png", sub: "Bride" },
+      { type: "groom", label: "신랑", runSheet: "/wedding-runner/groom-run.png", sub: "Groom" },
     ];
     return (
       <Shell>
@@ -306,13 +306,12 @@ export default function WeddingRunner({ onComplete }: { onComplete: () => void }
                     : "border-[color:var(--color-rose)]/30 bg-white/70"
                 }`}
               >
-                <div className="flex h-[150px] w-full items-end justify-center overflow-hidden rounded-xl bg-[color:var(--color-blush)]/30">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={opt.src}
-                    alt={opt.label}
-                    className="h-[150px] w-auto object-contain"
-                    style={{ imageRendering: "pixelated" }}
+                <div className="flex h-[175px] w-full items-end justify-center overflow-hidden rounded-xl bg-[color:var(--color-blush)]/30">
+                  <div
+                    aria-label={opt.label}
+                    role="img"
+                    className="wr-run-sprite"
+                    style={{ backgroundImage: `url(${opt.runSheet})` }}
                   />
                 </div>
                 <p className="mt-3 text-[14px] tracking-[0.16em] text-[color:var(--color-charcoal)]">{opt.label}</p>

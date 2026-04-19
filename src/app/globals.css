@@ -144,3 +144,18 @@ body {
 .fade-out {
   animation: fade-out 0.6s ease-in both;
 }
+
+/* 웨딩러너 캐릭터 선택 화면 — 스프라이트시트 러닝 애니메이션
+   원본 시트: 400x250(2프레임) · 표시 크기: 280x175(프레임당 140x175) */
+@keyframes wr-run-cycle {
+  from { background-position-x: 0; }
+  to { background-position-x: -140px; }
+}
+.wr-run-sprite {
+  width: 140px;
+  height: 175px;
+  background-repeat: no-repeat;
+  background-size: 280px 175px;
+  image-rendering: pixelated;
+  animation: wr-run-cycle 0.4s steps(2) infinite;
+}

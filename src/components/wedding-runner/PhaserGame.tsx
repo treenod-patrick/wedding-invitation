@@ -239,10 +239,26 @@ export default function PhaserGame({
         callResult();
       }
 
+      // 현재 화면에 적용된 스프라이트 키 추적 — 동일 키 재설정 방지 + 점프 즉시 반영
+      let currentTexKey = "";
+      function applyTexture(key: string, frame?: number) {
+        const id = frame != null ? `${key}#${frame}` : key;
+        if (currentTexKey === id) return;
+        currentTexKey = id;
+        if (frame != null) state.player!.setTexture(key, frame);
+        else state.player!.setTexture(key);
+        // setTexture 직후 displaySize가 원본으로 리셋되므로 다시 고정
+        if (state.playerW && state.playerH) {
+          state.player!.setDisplaySize(state.playerW, state.playerH);
+        }
+      }
+
       function tryJump() {
         if (state.isJumping) return;
         state.velocityY = JUMP_V;
         state.isJumping = true;
+        // 입력 즉시 점프 포즈로 교체 — update 루프 대기에 의한 1~2프레임 밀림 제거
+        if (state.player) applyTexture(`${playerType}-jump`);
       }
 
       function spawnItem(scene: Phaser.Scene) {
@@ -417,21 +433,19 @@ export default function PhaserGame({
               state.isJumping = false;
               state.velocityY = 0;
             }
-            // 공중 포즈 — JUMP PEAK 프레임 교체 (신부/신랑 공통)
-            state.player!.setTexture(`${playerType}-jump`);
-            state.player!.setDisplaySize(state.playerW!, state.playerH!);
+            // 점프 텍스처는 tryJump() 시점에 이미 적용됨 — 공중에서는 그대로 유지
+            applyTexture(`${playerType}-jump`);
           } else {
             // 피격/행복 우선, 그외 달리기 2프레임 교차 (120ms) — 신부/신랑 공통
             const now = scene.time.now;
             if (now < (state.hurtUntil ?? 0)) {
-              state.player!.setTexture(`${playerType}-hurt`);
+              applyTexture(`${playerType}-hurt`);
             } else if (now < (state.happyUntil ?? 0)) {
-              state.player!.setTexture(`${playerType}-happy`);
+              applyTexture(`${playerType}-happy`);
             } else {
               const fr = Math.floor((state.elapsed ?? 0) / 120) % 2;
-              state.player!.setTexture(`${playerType}-run`, fr);
+              applyTexture(`${playerType}-run`, fr);
             }
-            state.player!.setDisplaySize(state.playerW!, state.playerH!);
           }
 
           if (scene.time.now < (state.invincibleUntil ?? 0)) {
