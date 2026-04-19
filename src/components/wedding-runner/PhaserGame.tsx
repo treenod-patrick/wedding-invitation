@@ -53,8 +53,6 @@ type RunnerState = {
   bg: Phaser.GameObjects.TileSprite;
   itemsPool: Array<{ sprite: Phaser.GameObjects.Image; kind: ItemKind; x: number; y: number; alive: boolean; w: number; h: number }>;
   obstaclesPool: Array<{ sprite: Phaser.GameObjects.Image; kind: ObstacleKind; x: number; y: number; alive: boolean; w: number; h: number }>;
-  groundTiles: Phaser.GameObjects.Rectangle[];
-  parallaxLayers: Phaser.GameObjects.Rectangle[][];
   hudScore: Phaser.GameObjects.Text;
   hudTime: Phaser.GameObjects.Text;
   hudCombo: Phaser.GameObjects.Text;
@@ -141,8 +139,6 @@ export default function PhaserGame({
       const state: Partial<RunnerState> = {
         itemsPool: [],
         obstaclesPool: [],
-        groundTiles: [],
-        parallaxLayers: [[], []],
         scoreValue: 0,
         itemScoreValue: 0,
         combo: 0,
@@ -298,22 +294,7 @@ export default function PhaserGame({
           bg.setDepth(-10);
           state.bg = bg;
 
-          for (let i = 0; i < 8; i++) {
-            const r = scene.add.rectangle(i * 80 + 40, GROUND_Y - 180, 60, 40, PALETTE.sky2);
-            r.setStrokeStyle(2, PALETTE.ink, 0.2);
-            state.parallaxLayers![0].push(r);
-          }
-          for (let i = 0; i < 6; i++) {
-            const r = scene.add.rectangle(i * 120 + 30, GROUND_Y - 60, 12, 40, PALETTE.bride, 0.6);
-            state.parallaxLayers![1].push(r);
-          }
-          for (let i = 0; i < 16; i++) {
-            const t = scene.add.rectangle(i * 48, GROUND_Y + 40, 48, 80,
-              i % 2 === 0 ? PALETTE.floor : PALETTE.floorShade);
-            t.setOrigin(0, 0.5);
-            state.groundTiles!.push(t);
-          }
-
+          // 캐릭터 발밑 그림자
           scene.add.ellipse(PLAYER_X, GROUND_Y + 6, 60, 12, PALETTE.ink, 0.25);
           const PLAYER_W = 56;
           const PLAYER_H = 92;
@@ -358,18 +339,6 @@ export default function PhaserGame({
           // 배경 tileSprite 좌측으로 흐름 (메인 스크롤)
           if (state.bg) {
             state.bg.tilePositionX += (speed * dt) / 1000 / (state.bg.tileScaleX || 1);
-          }
-          for (const r of state.parallaxLayers![0]) {
-            r.x -= (speed * 0.25 * dt) / 1000;
-            if (r.x < -60) r.x += 8 * 80;
-          }
-          for (const r of state.parallaxLayers![1]) {
-            r.x -= (speed * 0.6 * dt) / 1000;
-            if (r.x < -30) r.x += 6 * 120;
-          }
-          for (const t of state.groundTiles!) {
-            t.x -= (speed * dt) / 1000;
-            if (t.x < -48) t.x += 16 * 48;
           }
 
           const baseH = 92;
