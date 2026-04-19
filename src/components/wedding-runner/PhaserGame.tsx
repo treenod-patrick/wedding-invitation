@@ -57,6 +57,7 @@ type RunnerState = {
   player: Phaser.GameObjects.Image;
   playerW: number;
   playerH: number;
+  bg: Phaser.GameObjects.TileSprite;
   itemsPool: Array<{ rect: Phaser.GameObjects.Graphics; kind: ItemKind; x: number; y: number; alive: boolean; size: number }>;
   obstaclesPool: Array<{ rect: Phaser.GameObjects.Graphics; kind: ObstacleKind; x: number; y: number; alive: boolean; w: number; h: number }>;
   groundTiles: Phaser.GameObjects.Rectangle[];
@@ -307,11 +308,24 @@ export default function PhaserGame({
           this.load.image("player-groom", "/wedding-runner/groom.png");
           // 게임오버 씬에 띄울 오리지널 일러스트
           this.load.image("game-over", "/wedding-runner/game-over.png");
+          // 스테이지1 배경 (마스터 제공 · 가로 타일링)
+          this.load.image("stage1-bg", "/wedding-runner/stage1-bg.png");
         },
         create(this: Phaser.Scene) {
           const scene = this;
-          scene.add.rectangle(VIEW_W / 2, VIEW_H / 2, VIEW_W, VIEW_H, PALETTE.sky);
-          scene.add.rectangle(VIEW_W / 2, VIEW_H / 2 - 60, VIEW_W, 120, PALETTE.sky2);
+          // 스카이 폴백 (이미지 로드 실패 시를 대비한 배경)
+          scene.add.rectangle(VIEW_W / 2, VIEW_H / 2, VIEW_W, VIEW_H, PALETTE.sky).setDepth(-20);
+
+          // 가로 스크롤 배경 — tileSprite 로 좌측으로 흐르게 함
+          const bgTex = scene.textures.get("stage1-bg").getSourceImage() as HTMLImageElement;
+          const bgH = bgTex?.height ?? 559;
+          // 배경이 뷰포트 전체 높이를 덮도록 세로 스케일, 가로는 tilePositionX 로 루프
+          const tileScale = VIEW_H / bgH;
+          const bg = scene.add.tileSprite(0, 0, VIEW_W, VIEW_H, "stage1-bg").setOrigin(0, 0);
+          bg.tileScaleX = tileScale;
+          bg.tileScaleY = tileScale;
+          bg.setDepth(-10);
+          state.bg = bg;
 
           for (let i = 0; i < 8; i++) {
             const r = scene.add.rectangle(i * 80 + 40, GROUND_Y - 180, 60, 40, PALETTE.sky2);
@@ -370,6 +384,10 @@ export default function PhaserGame({
           else state.scrollSpeed = 360;
 
           const speed = state.scrollSpeed!;
+          // 배경 tileSprite 좌측으로 흐름 (메인 스크롤)
+          if (state.bg) {
+            state.bg.tilePositionX += (speed * dt) / 1000 / (state.bg.tileScaleX || 1);
+          }
           for (const r of state.parallaxLayers![0]) {
             r.x -= (speed * 0.25 * dt) / 1000;
             if (r.x < -60) r.x += 8 * 80;
