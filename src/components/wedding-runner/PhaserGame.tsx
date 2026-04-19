@@ -51,7 +51,7 @@ const OBSTACLE_PENALTY: Record<ObstacleKind, number> = {
 };
 
 type RunnerState = {
-  player: Phaser.GameObjects.Image;
+  player: Phaser.GameObjects.Sprite;
   playerW: number;
   playerH: number;
   bg: Phaser.GameObjects.TileSprite;
@@ -245,8 +245,11 @@ export default function PhaserGame({
         const id = frame != null ? `${key}#${frame}` : key;
         if (currentTexKey === id) return;
         currentTexKey = id;
+        // Phaser 4: setTexture(key)에서 frame 인자 누락 시 이전 spritesheet frame index(예: 1)가
+        // sticky하게 남아 단일 이미지에서 잘못된 영역을 그려 "상반신만 보임" 증상 발생.
+        // 단일 이미지는 명시적으로 "__BASE", 스프라이트시트는 숫자 프레임을 넘겨 sticky 제거.
         if (frame != null) state.player!.setTexture(key, frame);
-        else state.player!.setTexture(key);
+        else state.player!.setTexture(key, "__BASE");
         // setTexture 직후 displaySize가 원본으로 리셋되므로 다시 고정
         if (state.playerW && state.playerH) {
           state.player!.setDisplaySize(state.playerW, state.playerH);
@@ -388,8 +391,9 @@ export default function PhaserGame({
           state.playerW = PLAYER_W;
           state.playerH = PLAYER_H;
           // 신부/신랑 공통: Run spritesheet 프레임 0으로 시작 — update에서 프레임 교차 애니
+          // Image 대신 Sprite 사용: spritesheet frame ↔ 단일 이미지 전환 시 frame index sticky 이슈 회피
           const runKey = `${playerType}-run`;
-          state.player = scene.add.image(PLAYER_X, GROUND_Y - PLAYER_H / 2, runKey, 0);
+          state.player = scene.add.sprite(PLAYER_X, GROUND_Y - PLAYER_H / 2, runKey, 0);
           state.player.setDisplaySize(PLAYER_W, PLAYER_H);
 
           const hudStyle = { fontFamily: "monospace", fontSize: "18px", color: "#3a2430", fontStyle: "bold" };
