@@ -177,39 +177,55 @@ export default function PhaserGame({
 
         // 게임오버(케이크 충돌) 시: 캐릭터 창 안에서 오버레이 이미지 + 한글 텍스트 노출 후 결과로 전환
         if (!completed) {
-          const dim = scene.add.rectangle(VIEW_W / 2, VIEW_H / 2, VIEW_W, VIEW_H, 0x000000, 0.55);
-          dim.setDepth(100);
+          // 딤 배경: 화면 전체를 확실히 덮음
+          const dim = scene.add.rectangle(VIEW_W / 2, VIEW_H / 2, VIEW_W, VIEW_H, 0x000000, 0.7);
+          dim.setDepth(100).setScrollFactor(0);
 
           const hasImg = scene.textures.exists("game-over");
-          if (!hasImg) {
-            console.warn("[WeddingRunner] game-over 텍스처 없음 — 텍스트 폴백만 표시");
-          } else {
-            const img = scene.add.image(VIEW_W / 2, VIEW_H / 2 - 40, "game-over");
-            img.setDepth(101);
-            const maxW = VIEW_W - 60;
+          if (hasImg) {
+            const img = scene.add.image(VIEW_W / 2, VIEW_H / 2 - 60, "game-over");
+            img.setDepth(101).setScrollFactor(0);
+            // 원본 텍스처 크기 기준으로 안전 스케일 (너무 큰 이미지 대응)
+            const srcW = img.width || 1;
+            const srcH = img.height || 1;
+            const maxW = VIEW_W - 40;
             const maxH = VIEW_H * 0.55;
-            const fit = Math.min(maxW / img.width, maxH / img.height, 1);
+            const fit = Math.min(maxW / srcW, maxH / srcH, 1);
             img.setScale(fit);
+          } else {
+            console.error("[WeddingRunner] game-over 텍스처 누락 — 이미지 로드 실패");
           }
 
-          scene.add.text(VIEW_W / 2, VIEW_H - 150, "게임 오버", {
+          // "GAME OVER" 영문 대형 텍스트 — 마스터 요구
+          scene.add.text(VIEW_W / 2, VIEW_H - 180, "GAME OVER", {
             fontFamily: "'Apple SD Gothic Neo', 'Noto Sans KR', 'Pretendard', sans-serif",
-            fontSize: "44px",
+            fontSize: "56px",
+            color: "#ffffff",
+            fontStyle: "bold",
+            stroke: "#ff1744",
+            strokeThickness: 8,
+          }).setOrigin(0.5).setDepth(102).setScrollFactor(0);
+
+          // 한글 "게임 오버" 보조 텍스트
+          scene.add.text(VIEW_W / 2, VIEW_H - 120, "게임 오버", {
+            fontFamily: "'Apple SD Gothic Neo', 'Noto Sans KR', 'Pretendard', sans-serif",
+            fontSize: "32px",
             color: "#ffffff",
             fontStyle: "bold",
             stroke: "#3a2430",
             strokeThickness: 6,
-          }).setOrigin(0.5).setDepth(101);
+          }).setOrigin(0.5).setDepth(102).setScrollFactor(0);
 
-          scene.add.text(VIEW_W / 2, VIEW_H - 96, "캐릭터가 쓰러졌습니다…", {
+          scene.add.text(VIEW_W / 2, VIEW_H - 76, "캐릭터가 쓰러졌습니다…", {
             fontFamily: "'Apple SD Gothic Neo', 'Noto Sans KR', 'Pretendard', sans-serif",
-            fontSize: "18px",
+            fontSize: "16px",
             color: "#fdf2f4",
             stroke: "#3a2430",
             strokeThickness: 3,
-          }).setOrigin(0.5).setDepth(101);
+          }).setOrigin(0.5).setDepth(102).setScrollFactor(0);
 
-          scene.time.delayedCall(1800, callResult);
+          // 마스터 요청: 이미지를 충분히 감상할 수 있도록 3초간 노출 유지
+          scene.time.delayedCall(3000, callResult);
           return;
         }
 
